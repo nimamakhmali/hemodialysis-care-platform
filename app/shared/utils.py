@@ -10,9 +10,9 @@ from uuid import UUID
 from app.shared.enums import TrendDirection
 
 
-# ==========================================
+
 # محاسبات پزشکی
-# ==========================================
+
 
 def calculate_idwg(
     pre_weight: float,
@@ -84,9 +84,9 @@ def calculate_bp_drop(
     return float(pre_systolic - during_systolic)
 
 
-# ==========================================
+
 # تحلیل روند ساده
-# ==========================================
+
 
 def classify_trend_direction(
     values: list[float],
@@ -142,9 +142,9 @@ def format_trend_fa(direction: TrendDirection) -> str:
     return mapping.get(direction, "نامشخص")
 
 
-# ==========================================
+
 # Pagination
-# ==========================================
+
 
 def paginate(
     total: int,
@@ -178,9 +178,9 @@ def get_offset(page: int, size: int) -> int:
     return (page - 1) * size
 
 
-# ==========================================
+
 # فرمت‌های نمایش
-# ==========================================
+
 
 def format_weight(value: float) -> str:
     """نمایش وزن با واحد"""
@@ -206,9 +206,9 @@ def mask_phone_number(phone: str) -> str:
     return "***"
 
 
-# ==========================================
+
 # ولیدیشن
-# ==========================================
+
 
 def is_valid_iranian_phone(phone: str) -> bool:
     """
