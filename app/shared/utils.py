@@ -243,3 +243,26 @@ def safe_divide(numerator: float, denominator: float,
     if denominator == 0:
         return default
     return numerator / denominator
+
+
+def calculate_slope(values: list[float]) -> float:
+    """
+    محاسبه شیب خط رگرسیون خطی (Linear Regression Slope)
+
+    برای تحلیل روند در Rule Engine
+    """
+    n = len(values)
+    if n < 2:
+        return 0.0
+
+    x = list(range(n))
+    x_mean = sum(x) / n
+    y_mean = sum(values) / n
+
+    numerator = sum((x[i] - x_mean) * (values[i] - y_mean) for i in range(n))
+    denominator = sum((x[i] - x_mean) ** 2 for i in range(n))
+
+    if denominator == 0:
+        return 0.0
+
+    return round(numerator / denominator, 4)
