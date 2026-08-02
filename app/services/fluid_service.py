@@ -17,7 +17,7 @@ from app.models.fluid_log import FluidLog
 from app.models.patient import Patient
 from app.models.user import User
 from app.schemas.fluid_log import FluidLogCreateRequest
-from app.shared.constants import FLUID_THRESHOLDS
+from app.config.thresholds import FLUID_THRESHOLDS
 from app.exceptions.business_exceptions import PatientNotFoundException
 
 

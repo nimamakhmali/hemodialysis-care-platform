@@ -373,7 +373,7 @@ class FluidOverloadPatternRule(BaseRule):
         avg_fluid = None
         if context.fluid_summary:
             avg_fluid = context.fluid_summary.get("avg_7d_ml")
-            if avg_fluid and avg_fluid >= FLUID_THRESHOLDS.daily_warning_ml:
+            if avg_fluid and avg_fluid >= FLUID_THRESHOLDS.daily_max_ml:
                 high_fluid_intake = True
 
         # حداقل دو تا از سه عامل باید وجود داشته باشند

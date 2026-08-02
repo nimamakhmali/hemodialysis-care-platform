@@ -6,6 +6,31 @@ import re
 from typing import Optional
 
 from app.shared.utils import is_valid_iranian_phone, normalize_phone
+from app.config.thresholds import WEIGHT_THRESHOLDS
+
+
+def validate_dry_weight(dry_weight: Optional[float]) -> tuple[bool, list[str]]:
+    """اعتبارسنجی وزن خشک بیمار"""
+    errors = []
+
+    if dry_weight is None:
+        errors.append("وزن خشک نمی‌تواند خالی باشد")
+        return False, errors
+
+    if dry_weight <= 0:
+        errors.append("وزن خشک باید مثبت باشد")
+
+    if dry_weight < WEIGHT_THRESHOLDS.valid_weight_min:
+        errors.append(
+            f"وزن خشک کمتر از حداقل معقول ({WEIGHT_THRESHOLDS.valid_weight_min} kg) است"
+        )
+
+    if dry_weight > WEIGHT_THRESHOLDS.valid_weight_max:
+        errors.append(
+            f"وزن خشک بیشتر از حداکثر معقول ({WEIGHT_THRESHOLDS.valid_weight_max} kg) است"
+        )
+
+    return len(errors) == 0, errors
 
 
 def validate_phone_number(phone: str) -> tuple[bool, str]:

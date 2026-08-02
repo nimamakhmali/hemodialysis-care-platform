@@ -7,7 +7,7 @@ import uuid
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, get_db, get_patient_with_access
+from app.api.dependencies import get_current_user, get_db, get_patient_with_access
 from app.models.patient import Patient
 from app.models.user import User
 from app.services.message_service import message_service
@@ -58,7 +58,7 @@ async def mark_message_read(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    from app.api.deps import get_patient_id_for_user
+    from app.api.dependencies import get_patient_id_for_user
     patient_id = get_patient_id_for_user(current_user, db)
 
     message = message_service.mark_as_read(

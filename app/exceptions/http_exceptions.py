@@ -9,7 +9,7 @@ HTTP Exception Handlers
 """
 
 import logging
-from typing import Any
+from typing import Any , Optional
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
@@ -17,12 +17,16 @@ from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError, OperationalError
 
+
+
 from app.exceptions.business_exceptions import (
     AlertNotFoundException,
     BaseBusinessException,
     DuplicateMedicalRecordException,
+    DuplicatePhoneNumberException,
     DuplicateSessionException,
     EducationContentNotFoundException,
+    InactiveUserException,
     InsufficientPermissionsException,
     InvalidBPException,
     InvalidCredentialsException,
@@ -30,6 +34,7 @@ from app.exceptions.business_exceptions import (
     InvalidStateTransitionException,
     InvalidWeightException,
     MessageNotFoundException,
+    OwnResourceAccessException,
     PatientInactiveException,
     PatientNotFoundException,
     RateLimitExceededException,
@@ -40,9 +45,165 @@ from app.exceptions.business_exceptions import (
     TokenBlacklistedException,
     TokenExpiredException,
     UnauthorizedAccessException,
+    UserNotFoundException,
+    WeakPasswordException,
 )
 
 logger = logging.getLogger(__name__)
+
+
+async def duplicate_medical_record_handler(request: Request, exc: DuplicateMedicalRecordException) -> JSONResponse:
+    return _error_response(
+        status_code=status.HTTP_409_CONFLICT,
+        code="DUPLICATE_MEDICAL_RECORD",
+        message=exc.message,
+        details=exc.details,
+    )
+
+
+async def duplicate_phone_handler(request: Request, exc: DuplicatePhoneNumberException) -> JSONResponse:
+    return _error_response(
+        status_code=status.HTTP_409_CONFLICT,
+        code="DUPLICATE_PHONE_NUMBER",
+        message=exc.message,
+        details=exc.details,
+    )
+
+
+async def duplicate_session_handler(request: Request, exc: DuplicateSessionException) -> JSONResponse:
+    return _error_response(
+        status_code=status.HTTP_409_CONFLICT,
+        code="DUPLICATE_SESSION",
+        message=exc.message,
+        details=exc.details,
+    )
+
+
+async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    logger.critical(f"Unhandled exception: {type(exc).__name__}: {exc} | path={request.url.path}", exc_info=True)
+    return _error_response(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        code="INTERNAL_ERROR",
+        message="خطای داخلی سیستم رخ داد",
+    )
+
+
+async def inactive_user_handler(request: Request, exc: InactiveUserException) -> JSONResponse:
+    return _error_response(
+        status_code=status.HTTP_403_FORBIDDEN,
+        code="INACTIVE_USER",
+        message=exc.message,
+        details=exc.details,
+    )
+
+
+async def invalid_bp_handler(request: Request, exc: InvalidBPException) -> JSONResponse:
+    return _error_response(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        code="INVALID_BLOOD_PRESSURE",
+        message=exc.message,
+        details=exc.details,
+    )
+
+
+async def invalid_credentials_handler(request: Request, exc: InvalidCredentialsException) -> JSONResponse:
+    return _error_response(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        code="INVALID_CREDENTIALS",
+        message=exc.message,
+        details=exc.details,
+    )
+
+
+async def invalid_lab_value_handler(request: Request, exc: InvalidLabValueException) -> JSONResponse:
+    return _error_response(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        code="INVALID_LAB_VALUE",
+        message=exc.message,
+        details=exc.details,
+    )
+
+
+async def invalid_weight_handler(request: Request, exc: InvalidWeightException) -> JSONResponse:
+    return _error_response(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        code="INVALID_WEIGHT",
+        message=exc.message,
+        details=exc.details,
+    )
+
+
+async def own_resource_handler(request: Request, exc: OwnResourceAccessException) -> JSONResponse:
+    return _error_response(
+        status_code=status.HTTP_403_FORBIDDEN,
+        code="OWN_RESOURCE_ACCESS",
+        message=exc.message,
+        details=exc.details,
+    )
+
+
+async def patient_not_found_handler(request: Request, exc: PatientNotFoundException) -> JSONResponse:
+    return _error_response(
+        status_code=status.HTTP_404_NOT_FOUND,
+        code="PATIENT_NOT_FOUND",
+        message=exc.message,
+        details=exc.details,
+    )
+
+
+async def recommendation_reviewed_handler(request: Request, exc: RecommendationAlreadyReviewedException) -> JSONResponse:
+    return _error_response(
+        status_code=status.HTTP_409_CONFLICT,
+        code="RECOMMENDATION_ALREADY_REVIEWED",
+        message=exc.message,
+        details=exc.details,
+    )
+
+
+async def token_blacklisted_handler(request: Request, exc: TokenBlacklistedException) -> JSONResponse:
+    return _error_response(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        code="TOKEN_BLACKLISTED",
+        message=exc.message,
+        details=exc.details,
+    )
+
+
+async def user_not_found_handler(request: Request, exc: UserNotFoundException) -> JSONResponse:
+    return _error_response(
+        status_code=status.HTTP_404_NOT_FOUND,
+        code="USER_NOT_FOUND",
+        message=exc.message,
+        details=exc.details,
+    )
+
+
+async def validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    errors = []
+    for error in exc.errors():
+        field = " → ".join(str(loc) for loc in error["loc"] if loc != "body")
+        errors.append({
+            "field": field,
+            "message": _translate_pydantic_error(error),
+        })
+
+    logger.warning(f"Validation error: {errors} | path={request.url.path}")
+
+    return _error_response(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        code="VALIDATION_ERROR",
+        message="داده‌های ورودی معتبر نیست",
+        details={"errors": errors},
+    )
+
+
+async def weak_password_handler(request: Request, exc: WeakPasswordException) -> JSONResponse:
+    return _error_response(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        code="WEAK_PASSWORD",
+        message=exc.message,
+        details=exc.details,
+    )
 
 
 def _error_response(

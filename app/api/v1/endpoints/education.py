@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, get_db, get_patient_with_access, require_admin
+from app.api.dependencies import get_current_user, get_db, get_patient_with_access, require_admin
 from app.models.patient import Patient
 from app.models.user import User
 from app.services.education_service import education_service

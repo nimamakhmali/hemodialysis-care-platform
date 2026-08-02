@@ -56,6 +56,11 @@ class DuplicateMedicalRecordException(BaseBusinessException):
     default_message = "کد بیمارستانی از قبل وجود دارد"
 
 
+class DuplicatePhoneNumberException(BaseBusinessException):
+    error_code = "DUPLICATE_PHONE_NUMBER"
+    default_message = "شماره موبایل از قبل ثبت شده است"
+
+
 class PatientInactiveException(BaseBusinessException):
     error_code = "PATIENT_INACTIVE"
     default_message = "بیمار غیرفعال است"
@@ -123,6 +128,21 @@ class TokenBlacklistedException(BaseBusinessException):
     default_message = "توکن باطل شده است"
 
 
+class InactiveUserException(BaseBusinessException):
+    error_code = "INACTIVE_USER"
+    default_message = "حساب کاربری شما غیرفعال است"
+
+
+class WeakPasswordException(BaseBusinessException):
+    error_code = "WEAK_PASSWORD"
+    default_message = "رمز عبور ضعیف است"
+
+
+class InvalidPasswordException(BaseBusinessException):
+    error_code = "INVALID_PASSWORD"
+    default_message = "رمز عبور اشتباه است"
+
+
 class InsufficientPermissionsException(BaseBusinessException):
     error_code = "INSUFFICIENT_PERMISSIONS"
     default_message = "دسترسی کافی ندارید"
@@ -131,6 +151,11 @@ class InsufficientPermissionsException(BaseBusinessException):
 class UnauthorizedAccessException(BaseBusinessException):
     error_code = "UNAUTHORIZED_ACCESS"
     default_message = "دسترسی به این منبع مجاز نیست"
+
+
+class OwnResourceAccessException(BaseBusinessException):
+    error_code = "OWN_RESOURCE_ACCESS"
+    default_message = "شما فقط به منابع خودتان دسترسی دارید"
 
 
 class RateLimitExceededException(BaseBusinessException):
@@ -178,6 +203,11 @@ class MessageNotFoundException(BaseBusinessException):
 class EducationContentNotFoundException(BaseBusinessException):
     error_code = "EDUCATION_NOT_FOUND"
     default_message = "محتوای آموزشی یافت نشد"
+
+
+class UserNotFoundException(BaseBusinessException):
+    error_code = "USER_NOT_FOUND"
+    default_message = "کاربر یافت نشد"
 
 
 class DuplicateTopicCodeException(BaseBusinessException):

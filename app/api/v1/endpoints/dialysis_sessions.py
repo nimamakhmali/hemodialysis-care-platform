@@ -9,7 +9,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db, get_patient_with_access, require_clinician
+from app.api.dependencies import get_db, get_patient_with_access, require_clinician
 from app.api.responses import SuccessResponse
 from app.models.patient import Patient
 from app.models.user import User

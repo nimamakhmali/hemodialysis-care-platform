@@ -8,7 +8,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
-from app.api.deps import (
+from app.api.dependencies import (
     get_current_user,
     get_db,
     get_patient_with_access,

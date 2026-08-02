@@ -8,13 +8,13 @@ Schema های ثبت مایعات
 - هر kg اضافه وزن = تقریباً ۱ لیتر مایع اضافی
 """
 
-from datetime import date
+from datetime import date, datetime
 from typing import List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, field_validator
 
-from app.shared.constants import MAX_FLUID_INTAKE_ML
+from app.config.thresholds import FLUID_THRESHOLDS
 
 
 class FluidItemRequest(BaseModel):
@@ -60,10 +60,10 @@ class FluidLogCreateRequest(BaseModel):
         if v is not None:
             if v < 0:
                 raise ValueError("مقدار مایع نمی‌تواند منفی باشد")
-            if v > MAX_FLUID_INTAKE_ML:
+            if v > FLUID_THRESHOLDS.daily_critical_ml:
                 raise ValueError(
                     f"مقدار مصرف مایع ({v} ml) بسیار زیاد است. "
-                    f"حداکثر قابل قبول: {MAX_FLUID_INTAKE_ML} ml"
+                    f"حداکثر قابل قبول: {FLUID_THRESHOLDS.daily_critical_ml} ml"
                 )
         return v
 

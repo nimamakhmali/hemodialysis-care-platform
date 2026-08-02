@@ -21,7 +21,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, get_db, get_patient_with_access
+from app.api.dependencies import get_current_user, get_db, get_patient_with_access
 from app.config.thresholds import BP_THRESHOLDS, WEIGHT_THRESHOLDS
 from app.models.alert import Alert
 from app.models.dialysis_session import DialysisSession

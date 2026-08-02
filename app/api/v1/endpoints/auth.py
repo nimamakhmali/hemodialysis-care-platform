@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, get_db
+from app.api.dependencies import get_current_user, get_db
 from app.api.responses import MessageResponse, SuccessResponse
 from app.infrastructure.auditing.logger import audit_logger
 from app.models.user import User

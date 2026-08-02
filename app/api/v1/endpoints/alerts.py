@@ -8,7 +8,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, get_db, require_clinician
+from app.api.dependencies import get_current_user, get_db, require_clinician
 from app.models.user import User
 from app.schemas.alert import (
     AlertAcknowledgeRequest,
@@ -61,7 +61,7 @@ async def list_patient_alerts(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    from app.api.deps import verify_patient_access
+    from app.api.dependencies import verify_patient_access
     verify_patient_access(current_user, patient_id, db)
 
     alerts, total = alert_service.get_patient_alerts(

@@ -7,7 +7,7 @@ import uuid
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, get_db, get_patient_with_access
+from app.api.dependencies import get_current_user, get_db, get_patient_with_access
 from app.models.patient import Patient
 from app.models.user import User
 from app.schemas.diet_log import DietLogCreateRequest

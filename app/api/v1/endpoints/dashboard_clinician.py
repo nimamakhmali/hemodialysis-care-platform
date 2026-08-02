@@ -20,7 +20,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import case, desc, func, or_
 from sqlalchemy.orm import Session, joinedload
 
-from app.api.deps import get_db, require_clinician
+from app.api.dependencies import get_db, require_clinician
 from app.config.thresholds import WEIGHT_THRESHOLDS, BP_THRESHOLDS
 from app.models.alert import Alert
 from app.models.dialysis_session import DialysisSession

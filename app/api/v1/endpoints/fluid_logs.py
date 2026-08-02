@@ -8,7 +8,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, get_db, get_patient_with_access
+from app.api.dependencies import get_current_user, get_db, get_patient_with_access
 from app.models.patient import Patient
 from app.models.user import User
 from app.schemas.fluid_log import FluidLogCreateRequest
@@ -38,14 +38,14 @@ async def log_fluid(
         request=request,
     )
 
-    from app.shared.constants import FLUID_THRESHOLDS
+    from app.config.thresholds import FLUID_THRESHOLDS
     warnings = []
     if log.total_ml >= FLUID_THRESHOLDS.daily_critical_ml:
         warnings.append(
             f"مصرف مایعات امروز ({log.total_ml} ml) "
             f"بسیار بیشتر از حد توصیه‌شده است"
         )
-    elif log.total_ml >= FLUID_THRESHOLDS.daily_warning_ml:
+    elif log.total_ml >= FLUID_THRESHOLDS.daily_max_ml:
         warnings.append(
             f"مصرف مایعات امروز ({log.total_ml} ml) "
             f"بیشتر از حد توصیه‌شده است"
@@ -90,12 +90,12 @@ async def list_fluid_logs(
 
 
 def _log_to_dict(log) -> dict:
-    from app.shared.constants import FLUID_THRESHOLDS
+    from app.config.thresholds import FLUID_THRESHOLDS
 
     status_fa = "مناسب"
     if log.total_ml >= FLUID_THRESHOLDS.daily_critical_ml:
         status_fa = "خیلی زیاد"
-    elif log.total_ml >= FLUID_THRESHOLDS.daily_warning_ml:
+    elif log.total_ml >= FLUID_THRESHOLDS.daily_max_ml:
         status_fa = "بالاتر از حد توصیه‌شده"
 
     return {
