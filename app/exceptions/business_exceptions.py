@@ -67,8 +67,8 @@ class SessionAlreadyExistsException(HemodialysisBaseException):
     pass
 
 
-class RecommendationAlreadyReviewedException(HemodialysisBaseException):
-    pass
+#class RecommendationAlreadyReviewedException(HemodialysisBaseException):
+#    pass
 
 
 class OwnResourceAccessException(HemodialysisBaseException):
@@ -81,3 +81,43 @@ class InvalidPasswordException(HemodialysisBaseException):
 
 class WeakPasswordException(HemodialysisBaseException):
     pass
+
+
+"""
+Exception های اضافه‌شده برای TASK-024/026
+"""
+
+class AlertNotFoundException(Exception):
+    def __init__(self, message: str = "هشدار یافت نشد"):
+        self.message = message
+        super().__init__(message)
+
+
+class RecommendationNotFoundException(Exception):
+    def __init__(self, message: str = "توصیه یافت نشد"):
+        self.message = message
+        super().__init__(message)
+
+
+class RecommendationAlreadyReviewedException(Exception):
+    def __init__(self, message: str = "این توصیه قبلاً بررسی شده است"):
+        self.message = message
+        super().__init__(message)
+
+
+class InvalidStateTransitionException(Exception):
+    def __init__(self, message: str = "تغییر وضعیت مجاز نیست"):
+        self.message = message
+        super().__init__(message)
+
+
+class MessageNotFoundException(Exception):
+    def __init__(self, message: str = "پیام یافت نشد"):
+        self.message = message
+        super().__init__(message)
+
+
+class UnauthorizedAccessException(Exception):
+    def __init__(self, message: str = "دسترسی مجاز نیست"):
+        self.message = message
+        super().__init__(message)

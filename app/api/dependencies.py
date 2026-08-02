@@ -249,3 +249,40 @@ def require_permission(permission: str):
         return current_user
 
     return _check_permission
+
+
+# ============================================================
+# app/api/deps.py — اضافه کردن get_patient_id_for_user
+# ============================================================
+
+def get_patient_id_for_user(
+    current_user: User,
+    db: Session,
+) -> uuid.UUID:
+    """
+    دریافت patient_id برای کاربر با نقش PATIENT
+
+    اگر کاربر نقش PATIENT داشته باشد، patient_id او را برمی‌گرداند.
+    اگر clinician باشد، خطا می‌دهد (باید patient_id را explicit وارد کند).
+    """
+    from app.shared.enums import UserRole
+    from app.models.patient import Patient
+
+    if current_user.role != UserRole.PATIENT:
+        raise HTTPException(
+            status_code=403,
+            detail="این عملیات فقط برای بیماران مجاز است",
+        )
+
+    patient = db.query(Patient).filter(
+        Patient.user_id == current_user.id,
+        Patient.is_active == True,
+    ).first()
+
+    if not patient:
+        raise HTTPException(
+            status_code=404,
+            detail="پرونده بیمار برای این کاربر یافت نشد",
+        )
+
+    return patient.id

@@ -334,81 +334,64 @@ class PostDialysisHypotensionRule(BaseRule):
         return self._no_trigger()
 
 
+# ============================================================
+# app/analysis/rules/bp_rules.py — فقط BPTrendRule اصلاح شد
+# ============================================================
+
 class BPTrendRule(BaseRule):
-    """
-    روند صعودی یا نزولی فشار خون در جلسات اخیر
-
-    Trigger: روند معنی‌دار در ۴ جلسه اخیر
-
-    صعودی (فشار بالا می‌رود):
-    - ممکن است نشانه Volume Overload یا نیاز به تنظیم دارو باشد
-    نزولی (فشار پایین می‌آید):
-    - ممکن است نشانه Over-UF یا دوز زیاد دارو باشد
-    """
     name = "BP_TREND"
     category = AlertCategory.BLOOD_PRESSURE
     MIN_SESSIONS = 4
 
     def evaluate(self, context: RuleContext) -> RuleResult:
+        # از قدیم به جدید برای slope درست
         pre_systolics = context.get_recent_pre_systolics(n=self.MIN_SESSIONS)
 
         if len(pre_systolics) < self.MIN_SESSIONS:
             return self._no_trigger()
 
         slope = calculate_slope(pre_systolics)
-
-        # آستانه تغییر معنی‌دار: بیشتر از ۵ mmHg در هر جلسه
         SLOPE_THRESHOLD = 5.0
 
         if abs(slope) < SLOPE_THRESHOLD:
             return self._no_trigger()
 
-        sessions_with_bp = [
-            s for s in context.recent_sessions[:self.MIN_SESSIONS]
-            if s.get("bp_pre_systolic")
-        ]
-
         is_rising = slope > 0
         direction_fa = "صعودی" if is_rising else "نزولی"
-        latest_bp = pre_systolics[-1] if pre_systolics else None
+        latest_bp = pre_systolics[-1]
 
         severity = AlertSeverity.MEDIUM
-        if is_rising and latest_bp and latest_bp >= BP_THRESHOLDS.pre_systolic_high:
+        if is_rising and latest_bp >= BP_THRESHOLDS.pre_systolic_high:
             severity = AlertSeverity.HIGH
 
         return self._make_triggered(
             severity=severity,
-            title=(
-                f"روند {direction_fa} فشار خون "
-                f"(شیب: {slope:+.1f} mmHg/جلسه)"
-            ),
+            title=f"روند {direction_fa} فشار خون ({slope:+.1f} mmHg/جلسه)",
             clinician_explanation=(
-                f"فشار سیستولیک قبل دیالیز در {self.MIN_SESSIONS} جلسه اخیر "
-                f"روند {direction_fa} دارد (شیب: {slope:+.1f} mmHg/جلسه). "
-                f"{'بررسی Volume Overload یا نیاز به تنظیم دارو.' if is_rising else 'بررسی Over-UF یا دوز زیاد داروی فشار.'}"
+                f"فشار سیستولیک در {self.MIN_SESSIONS} جلسه اخیر "
+                f"روند {direction_fa} دارد (شیب: {slope:+.1f} mmHg/جلسه)."
             ),
             evidence={
                 "slope": round(slope, 2),
                 "direction": "rising" if is_rising else "falling",
-                "recent_values": [
-                    {"date": s.get("date"), "value": s.get("bp_pre_systolic")}
-                    for s in sessions_with_bp
-                ],
+                "latest_systolic": latest_bp,
                 "n_sessions": self.MIN_SESSIONS,
             },
             education_topic="HIGH_BP",
             recommendation_draft=(
                 f"📋 روند {direction_fa} BP — {context.patient_full_name}\n\n"
-                f"مشاهدات: شیب {slope:+.1f} mmHg/جلسه در {self.MIN_SESSIONS} جلسه\n\n"
-                f"پیشنهاد بررسی:\n"
-                + (
-                    f"• بررسی روند IDWG (Volume Overload؟)\n"
-                    f"• بررسی مصرف منظم داروی فشار\n"
-                    f"• ارزیابی نیاز به تنظیم دوز"
-                    if is_rising else
-                    f"• بررسی UF Rate و وزن خشک\n"
-                    f"• بررسی دوز داروهای فشارخون\n"
-                    f"• ارزیابی علائم Hypovolemia"
-                )
+                f"شیب: {slope:+.1f} mmHg/جلسه در {self.MIN_SESSIONS} جلسه\n"
             ),
         )
+
+
+# اصلاح get_recent_pre_systolics در RuleContext
+# در base.py:
+def get_recent_pre_systolics(self, n: int = 4) -> list[float]:
+    """از قدیم به جدید برای محاسبه slope درست"""
+    values = []
+    for s in reversed(self.recent_sessions[:n]):
+        bp = s.get("bp_pre_systolic")
+        if bp is not None:
+            values.append(float(bp))
+    return values

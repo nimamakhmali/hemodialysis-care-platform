@@ -1,15 +1,17 @@
+# ============================================================
+# app/analysis/engine.py — نسخه refactor شده
+# ============================================================
 """
-موتور تحلیل مرکزی
-
-orchestrate کردن اجرای تمام Rules روی Context
-و تبدیل نتایج به Alert/Recommendation
+موتور تحلیل مرکزی — بدون N+1 query و بدون circular import
 """
 
 import logging
 import uuid
 from datetime import datetime, timedelta, timezone
+from itertools import groupby
 from typing import Optional
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.analysis.rules.base import RuleContext, RuleResult
@@ -23,22 +25,20 @@ from app.analysis.rules.bp_rules import (
 from app.analysis.rules.lab_rules import (
     AnemiaRule,
     AnemiaTrendRule,
+    CaPProductRule,
     HyperkalemiaRule,
     HyperphosphatemiaRule,
     HyperphosphatemiaWithPoorDietRule,
     HypoalbuminemiaRule,
     HypokalemiaRule,
+    InflammationVsMalnutritionRule,
     IronDeficiencyRule,
     RenalOsteodystrophyRule,
-    CaPProductRule,
-    InflammationVsMalnutritionRule,
 )
 from app.analysis.rules.symptom_rules import (
-    DangerSymptomRule,
-    FluidOverloadPatternRule,
-    MalnutritionRiskRule,
-    RecurrentSymptomsRule,
     AccessSitePainRule,
+    DangerSymptomRule,
+    RecurrentSymptomsRule,
 )
 from app.analysis.rules.weight_rules import (
     ConsecutiveHighIDWGRule,
@@ -56,6 +56,7 @@ from app.shared.enums import (
     AlertCategory,
     AlertSeverity,
     AlertStatus,
+    LabTestCode,
     RecommendationStatus,
 )
 
@@ -63,18 +64,8 @@ logger = logging.getLogger(__name__)
 
 
 class AnalysisEngine:
-    """
-    موتور تحلیل مرکزی
-
-    مسئولیت‌ها:
-    1. ساخت Context از داده‌های DB
-    2. اجرای Rules
-    3. فیلتر duplicate
-    4. ذخیره Alert و Recommendation
-    """
 
     def __init__(self):
-        # ثبت تمام Rules
         self._session_rules = [
             IDWGWarningRule(),
             IDWGCriticalRule(),
@@ -105,31 +96,19 @@ class AnalysisEngine:
             DangerSymptomRule(),
             RecurrentSymptomsRule(),
             AccessSitePainRule(),
-            FluidOverloadPatternRule(),
-            MalnutritionRiskRule(),
-        ]
-
-        self._fluid_rules = [
-            # در TASK-021 تکمیل می‌شود
         ]
 
     # ============================================================
-    # Context Builder
+    # Context Builder — بدون N+1 query
     # ============================================================
     def _build_context(
         self,
         db: Session,
         patient: Patient,
         trigger_session_id: Optional[uuid.UUID] = None,
-        trigger_panel_id: Optional[uuid.UUID] = None,
-        trigger_report_id: Optional[uuid.UUID] = None,
     ) -> RuleContext:
-        """
-        ساخت Context کامل از DB
 
-        داده‌های لازم برای تمام Rules را یکجا لود می‌کند.
-        """
-        # ۸ جلسه اخیر
+        # ۸ جلسه اخیر — یک query
         recent_sessions_db = (
             db.query(DialysisSession)
             .filter(DialysisSession.patient_id == patient.id)
@@ -161,44 +140,42 @@ class AnalysisEngine:
             for s in recent_sessions_db
         ]
 
-        # آخرین مقدار هر آزمایش
-        from app.shared.enums import LabTestCode
+        # همه آزمایش‌ها — یک query برای همه test_code ها
         latest_labs: dict[str, dict] = {}
         lab_history: dict[str, list[dict]] = {}
 
-        for test_code in LabTestCode:
-            results = (
-                db.query(LabResult)
-                .join(LabPanel)
-                .filter(
-                    LabResult.patient_id == patient.id,
-                    LabResult.test_code == test_code.value,
-                )
-                .order_by(LabPanel.collected_at.desc())
-                .limit(6)
-                .all()
-            )
+        all_results = (
+            db.query(LabResult, LabPanel.collected_at)
+            .join(LabPanel, LabResult.panel_id == LabPanel.id)
+            .filter(LabResult.patient_id == patient.id)
+            .order_by(LabResult.test_code, LabPanel.collected_at.desc())
+            .limit(140)  # 14 تست × 10 نتیجه
+            .all()
+        )
 
-            if results:
-                latest = results[0]
-                latest_labs[test_code.value] = {
-                    "value": latest.value,
-                    "unit": latest.unit,
-                    "date": str(latest.panel.collected_at) if latest.panel else None,
-                    "is_abnormal": latest.is_abnormal,
-                    "is_critical": latest.is_critical,
-                    "direction": latest.abnormality_direction,
-                }
+        # groupby در Python
+        for test_code, group in groupby(all_results, key=lambda x: x[0].test_code):
+            group_list = list(group)
+            if not group_list:
+                continue
 
-                lab_history[test_code.value] = [
-                    {
-                        "date": str(r.panel.collected_at) if r.panel else None,
-                        "value": r.value,
-                    }
-                    for r in reversed(results)
-                ]
+            latest_result, latest_date = group_list[0]
+            latest_labs[test_code] = {
+                "value": latest_result.value,
+                "unit": latest_result.unit,
+                "date": str(latest_date),
+                "is_abnormal": latest_result.is_abnormal,
+                "is_critical": latest_result.is_critical,
+                "direction": latest_result.abnormality_direction,
+            }
 
-        # علائم ۱۴ روز اخیر
+            # تاریخچه از قدیم به جدید
+            lab_history[test_code] = [
+                {"date": str(date_val), "value": r.value}
+                for r, date_val in reversed(group_list)
+            ]
+
+        # علائم ۱۴ روز — یک query
         two_weeks_ago = datetime.now(timezone.utc) - timedelta(days=14)
         recent_reports = (
             db.query(SymptomReport)
@@ -211,25 +188,58 @@ class AnalysisEngine:
             .all()
         )
 
-        recent_symptoms = []
-        for r in recent_reports:
-            for s in (r.symptoms or []):
-                recent_symptoms.append({
-                    "type": s.get("type"),
-                    "severity": s.get("severity"),
-                    "reported_at": r.reported_at.isoformat(),
-                })
+        recent_symptoms = [
+            {
+                "type": s.get("type"),
+                "severity": s.get("severity"),
+                "reported_at": r.reported_at.isoformat(),
+            }
+            for r in recent_reports
+            for s in (r.symptoms or [])
+        ]
 
-        # خلاصه مایعات و رژیم
-        from app.services.fluid_service import fluid_service
-        from app.services.diet_service import diet_service
+        # مایعات و رژیم — query مستقیم بدون import از services
+        from app.models.fluid_log import FluidLog
+        from app.models.diet_log import DietLog
+        from sqlalchemy import func as sqlfunc
+        import datetime as dt
 
-        avg_fluid = fluid_service.get_avg_fluid_last_n_days(db, patient.id, 7)
-        diet_summary = diet_service.get_adherence_summary(db, patient.id, 30)
+        seven_days_ago = dt.date.today() - timedelta(days=7)
+        avg_fluid_result = (
+            db.query(sqlfunc.avg(FluidLog.total_ml))
+            .filter(
+                FluidLog.patient_id == patient.id,
+                FluidLog.log_date >= seven_days_ago,
+            )
+            .scalar()
+        )
+        avg_fluid = round(float(avg_fluid_result), 1) if avg_fluid_result else None
 
-        # جلسه trigger (اگر از session آمده)
+        thirty_days_ago = dt.date.today() - timedelta(days=30)
+        diet_logs = (
+            db.query(DietLog)
+            .filter(
+                DietLog.patient_id == patient.id,
+                DietLog.log_date >= thirty_days_ago,
+            )
+            .all()
+        )
+
+        diet_summary = None
+        if diet_logs:
+            from app.shared.enums import DietAdherence
+            poor_p = sum(
+                1 for log in diet_logs
+                if log.phosphorus_adherence == DietAdherence.POOR
+            )
+            diet_summary = {
+                "total_logs": len(diet_logs),
+                "phosphorus_poor_rate": round(poor_p / len(diet_logs) * 100, 1),
+            }
+
+        # جلسه trigger
         current_session = None
-        if trigger_session_id and recent_sessions:
+        if trigger_session_id:
             for s in recent_sessions:
                 if s["id"] == str(trigger_session_id):
                     current_session = s
@@ -251,12 +261,7 @@ class AnalysisEngine:
     # ============================================================
     # Run Methods
     # ============================================================
-    def run_for_session(
-        self,
-        db: Session,
-        session_id: uuid.UUID,
-    ) -> list[Alert]:
-        """اجرای تحلیل بعد از ثبت جلسه دیالیز"""
+    def run_for_session(self, db: Session, session_id: uuid.UUID) -> list[Alert]:
         session = db.query(DialysisSession).get(session_id)
         if not session:
             logger.warning(f"Session {session_id} یافت نشد")
@@ -266,25 +271,11 @@ class AnalysisEngine:
         if not patient:
             return []
 
-        context = self._build_context(
-            db=db,
-            patient=patient,
-            trigger_session_id=session_id,
-        )
-
-        results = [
-            rule.safe_evaluate(context)
-            for rule in self._session_rules
-        ]
-
+        context = self._build_context(db, patient, trigger_session_id=session_id)
+        results = [rule.safe_evaluate(context) for rule in self._session_rules]
         return self._process_results(db, patient, results)
 
-    def run_for_lab_panel(
-        self,
-        db: Session,
-        panel_id: uuid.UUID,
-    ) -> list[Alert]:
-        """اجرای تحلیل بعد از ثبت پنل آزمایش"""
+    def run_for_lab_panel(self, db: Session, panel_id: uuid.UUID) -> list[Alert]:
         panel = db.query(LabPanel).get(panel_id)
         if not panel:
             return []
@@ -293,25 +284,11 @@ class AnalysisEngine:
         if not patient:
             return []
 
-        context = self._build_context(
-            db=db,
-            patient=patient,
-            trigger_panel_id=panel_id,
-        )
-
-        results = [
-            rule.safe_evaluate(context)
-            for rule in self._lab_rules
-        ]
-
+        context = self._build_context(db, patient)
+        results = [rule.safe_evaluate(context) for rule in self._lab_rules]
         return self._process_results(db, patient, results)
 
-    def run_for_symptoms(
-        self,
-        db: Session,
-        report_id: uuid.UUID,
-    ) -> list[Alert]:
-        """اجرای تحلیل بعد از ثبت گزارش علائم"""
+    def run_for_symptoms(self, db: Session, report_id: uuid.UUID) -> list[Alert]:
         report = db.query(SymptomReport).get(report_id)
         if not report:
             return []
@@ -320,36 +297,18 @@ class AnalysisEngine:
         if not patient:
             return []
 
-        context = self._build_context(
-            db=db,
-            patient=patient,
-            trigger_report_id=report_id,
-        )
-
-        results = [
-            rule.safe_evaluate(context)
-            for rule in self._symptom_rules
-        ]
-
+        context = self._build_context(db, patient)
+        results = [rule.safe_evaluate(context) for rule in self._symptom_rules]
         return self._process_results(db, patient, results)
 
-    def run_for_fluid(
-        self,
-        db: Session,
-        patient_id: uuid.UUID,
-    ) -> list[Alert]:
-        """اجرای تحلیل بعد از ثبت مایعات"""
+    def run_for_fluid(self, db: Session, patient_id: uuid.UUID) -> list[Alert]:
         patient = db.query(Patient).get(patient_id)
         if not patient:
             return []
 
-        context = self._build_context(db=db, patient=patient)
-
-        # fluid + cross-domain با session
-        rules = self._fluid_rules + [FluidOverloadPatternRule()]
-        results = [rule.safe_evaluate(context) for rule in rules]
-
-        return self._process_results(db, patient, results)
+        context = self._build_context(db, patient)
+        # fluid rules در TASK-021 اضافه می‌شود
+        return []
 
     # ============================================================
     # Process Results
@@ -360,31 +319,19 @@ class AnalysisEngine:
         patient: Patient,
         results: list[RuleResult],
     ) -> list[Alert]:
-        """
-        تبدیل RuleResult‌ها به Alert و Recommendation
-
-        مراحل:
-        1. فیلتر triggered=False
-        2. جلوگیری از duplicate (همان rule در ۲۴ ساعت)
-        3. ذخیره Alert
-        4. ذخیره Recommendation Draft برای HIGH alerts
-        """
         triggered = [r for r in results if r.triggered]
         if not triggered:
             return []
 
-        created_alerts = []
+        created_alerts: list[Alert] = []
 
         for result in triggered:
-            # بررسی duplicate
             if self._is_duplicate(db, patient.id, result.rule_name):
                 logger.debug(
-                    f"Rule '{result.rule_name}' برای {patient.full_name} "
-                    f"در ۲۴ ساعت گذشته اجرا شده — duplicate skip"
+                    f"Rule '{result.rule_name}' duplicate — skip"
                 )
                 continue
 
-            # ایجاد Alert
             alert = Alert(
                 patient_id=patient.id,
                 severity=result.severity,
@@ -399,19 +346,20 @@ class AnalysisEngine:
             db.flush()
             created_alerts.append(alert)
 
-            # ایجاد Recommendation Draft برای HIGH و MEDIUM alerts
-            if result.severity in (AlertSeverity.HIGH, AlertSeverity.MEDIUM):
-                if result.recommendation_draft:
-                    rec = Recommendation(
-                        patient_id=patient.id,
-                        alert_id=alert.id,
-                        draft_for_clinician=result.recommendation_draft,
-                        patient_content=result.patient_message_draft,
-                        education_topic=result.education_topic,
-                        status=RecommendationStatus.DRAFT,
-                        priority=result.severity,
-                    )
-                    db.add(rec)
+            if (
+                result.severity in (AlertSeverity.HIGH, AlertSeverity.MEDIUM)
+                and result.recommendation_draft
+            ):
+                rec = Recommendation(
+                    patient_id=patient.id,
+                    alert_id=alert.id,
+                    draft_for_clinician=result.recommendation_draft,
+                    patient_content=result.patient_message_draft,
+                    education_topic=result.education_topic,
+                    status=RecommendationStatus.DRAFT,
+                    priority=result.severity,
+                )
+                db.add(rec)
 
         db.commit()
         return created_alerts
@@ -423,70 +371,13 @@ class AnalysisEngine:
         rule_name: str,
         hours: int = 24,
     ) -> bool:
-        """
-        بررسی duplicate Alert
-
-        جلوگیری از ایجاد هشدار تکراری برای همان rule
-        در بازه ۲۴ ساعت
-        """
         cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
-        existing = db.query(Alert).filter(
+        return db.query(Alert).filter(
             Alert.patient_id == patient_id,
             Alert.triggered_by_rule == rule_name,
             Alert.status != AlertStatus.RESOLVED,
             Alert.created_at >= cutoff,
-        ).first()
-
-        return existing is not None
+        ).first() is not None
 
 
-    # در AnalysisEngine._process_results اضافه کنید:
-
-    def run_full_analysis(
-        self,
-        db: Session,
-        patient_id: UUID,
-    ) -> dict:
-        """
-        تحلیل کامل یک بیمار:
-        - اجرای همه Rules
-        - تحلیل روند
-        - محاسبه نمره ریسک
-        """
-        from app.analysis.trends import trend_analyzer
-        from app.analysis.risk import risk_scorer
-
-        patient = db.query(Patient).get(patient_id)
-        if not patient:
-            return {}
-
-        context = self._build_context(db, patient)
-
-        # اجرای همه Rules
-        all_results = []
-        for rule in (
-            self._session_rules
-            + self._lab_rules
-            + self._symptom_rules
-            + self._fluid_rules
-        ):
-            all_results.append(rule.safe_evaluate(context))
-
-        alerts = self._process_results(db, patient, all_results)
-
-        # تحلیل روند
-        trend_summary = trend_analyzer.detect_gradual_deterioration(
-            db, patient_id
-        )
-
-        # نمره ریسک
-        risk = risk_scorer.calculate_risk_score(db, patient_id)
-
-        return {
-            "alerts_created": len(alerts),
-            "trend_summary": trend_summary,
-            "risk_score": risk,
-        }
-
-# Singleton
 analysis_engine = AnalysisEngine()

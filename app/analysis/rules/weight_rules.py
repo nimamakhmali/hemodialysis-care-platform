@@ -157,14 +157,11 @@ class IDWGCriticalRule(BaseRule):
         return self._no_trigger()
 
 
-class ConsecutiveHighIDWGRule(BaseRule):
-    """
-    IDWG بالا در چند جلسه متوالی
+# ============================================================
+# app/analysis/rules/weight_rules.py — فقط ConsecutiveHighIDWGRule اصلاح شد
+# ============================================================
 
-    Trigger: IDWG >= threshold_warn در ۳ جلسه متوالی اخیر
-    Severity: HIGH
-    Meaning: عدم رعایت مستمر → نیاز به مداخله جدی‌تر
-    """
+class ConsecutiveHighIDWGRule(BaseRule):
     name = "IDWG_CONSECUTIVE_HIGH"
     category = AlertCategory.WEIGHT
     CONSECUTIVE_COUNT = 3
@@ -175,10 +172,11 @@ class ConsecutiveHighIDWGRule(BaseRule):
 
         threshold = WEIGHT_THRESHOLDS.idwg_percent_warning
 
-        # چک n جلسه آخر (مرتب از جدید به قدیم)
+        # n جلسه آخر (جدیدترین اول در recent_sessions)
         recent_n = context.recent_sessions[:self.CONSECUTIVE_COUNT]
-        high_idwg_sessions = []
 
+        # بررسی همه باید بالا باشند
+        high_idwg_sessions = []
         for s in recent_n:
             idwg = s.get("weight_gain_percent")
             if idwg is not None and idwg >= threshold:
@@ -188,22 +186,22 @@ class ConsecutiveHighIDWGRule(BaseRule):
                     "weight_gain_kg": s.get("weight_gain"),
                 })
             else:
-                # اگر یکی کمتر بود، متوالی نیست
                 return self._no_trigger()
 
-        avg_idwg = sum(s["idwg_percent"] for s in high_idwg_sessions) / len(high_idwg_sessions)
+        if len(high_idwg_sessions) < self.CONSECUTIVE_COUNT:
+            return self._no_trigger()
+
+        avg_idwg = sum(
+            s["idwg_percent"] for s in high_idwg_sessions
+        ) / len(high_idwg_sessions)
 
         return self._make_triggered(
             severity=AlertSeverity.HIGH,
-            title=(
-                f"IDWG بالا در {self.CONSECUTIVE_COUNT} جلسه متوالی"
-            ),
+            title=f"IDWG بالا در {self.CONSECUTIVE_COUNT} جلسه متوالی",
             clinician_explanation=(
                 f"در {self.CONSECUTIVE_COUNT} جلسه متوالی اخیر، "
                 f"IDWG بیشتر از {threshold}% بوده است. "
-                f"میانگین IDWG: {avg_idwg:.1f}%. "
-                f"این الگو نشان‌دهنده عدم رعایت مستمر محدودیت مایعات است. "
-                f"بررسی دلایل و مداخله آموزشی/درمانی توصیه می‌شود."
+                f"میانگین IDWG: {avg_idwg:.1f}%."
             ),
             evidence={
                 "consecutive_sessions": high_idwg_sessions,
@@ -213,24 +211,19 @@ class ConsecutiveHighIDWGRule(BaseRule):
             },
             education_topic="HIGH_IDWG",
             recommendation_draft=(
-                f"📋 الگوی IDWG مستمر بالا — {context.patient_full_name}\n\n"
-                f"مشاهدات: IDWG >= {threshold}% در {self.CONSECUTIVE_COUNT} "
-                f"جلسه متوالی (میانگین: {avg_idwg:.1f}%)\n\n"
+                f"📋 IDWG مستمر بالا — {context.patient_full_name}\n\n"
+                f"میانگین IDWG: {avg_idwg:.1f}% در "
+                f"{self.CONSECUTIVE_COUNT} جلسه متوالی\n\n"
                 f"پیشنهاد بررسی:\n"
                 f"• جلسه آموزشی مجدد درباره محدودیت مایعات\n"
-                f"• بررسی درک بیمار از وزن خشک\n"
-                f"• بررسی مصرف سدیم (نمک) و ارتباط با تشنگی\n"
-                f"• ارزیابی صحت وزن خشک فعلی\n"
-                f"• بررسی عوامل روانی/اجتماعی مؤثر بر رعایت"
+                f"• بررسی مصرف سدیم\n"
+                f"• ارزیابی صحت وزن خشک"
             ),
             patient_message_draft=(
-                f"در چند جلسه اخیر، وزن شما قبل از دیالیز "
-                f"مرتباً بیشتر از حد توصیه‌شده بوده است. "
-                f"این نشان می‌دهد که باید در مصرف مایعات دقت بیشتری داشته باشید. "
-                f"پزشک شما اطلاعات بیشتری به شما خواهد داد."
+                f"در چند جلسه اخیر وزن شما مرتباً بالاتر از حد توصیه‌شده بوده. "
+                f"پزشک شما راهنمایی بیشتری خواهد داد."
             ),
         )
-
 
 class PostWeightFarFromDryRule(BaseRule):
     """
