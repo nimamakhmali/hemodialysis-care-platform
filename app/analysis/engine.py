@@ -440,5 +440,53 @@ class AnalysisEngine:
         return existing is not None
 
 
+    # در AnalysisEngine._process_results اضافه کنید:
+
+    def run_full_analysis(
+        self,
+        db: Session,
+        patient_id: UUID,
+    ) -> dict:
+        """
+        تحلیل کامل یک بیمار:
+        - اجرای همه Rules
+        - تحلیل روند
+        - محاسبه نمره ریسک
+        """
+        from app.analysis.trends import trend_analyzer
+        from app.analysis.risk import risk_scorer
+
+        patient = db.query(Patient).get(patient_id)
+        if not patient:
+            return {}
+
+        context = self._build_context(db, patient)
+
+        # اجرای همه Rules
+        all_results = []
+        for rule in (
+            self._session_rules
+            + self._lab_rules
+            + self._symptom_rules
+            + self._fluid_rules
+        ):
+            all_results.append(rule.safe_evaluate(context))
+
+        alerts = self._process_results(db, patient, all_results)
+
+        # تحلیل روند
+        trend_summary = trend_analyzer.detect_gradual_deterioration(
+            db, patient_id
+        )
+
+        # نمره ریسک
+        risk = risk_scorer.calculate_risk_score(db, patient_id)
+
+        return {
+            "alerts_created": len(alerts),
+            "trend_summary": trend_summary,
+            "risk_score": risk,
+        }
+
 # Singleton
 analysis_engine = AnalysisEngine()
