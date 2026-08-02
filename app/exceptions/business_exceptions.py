@@ -11,77 +11,178 @@ class HemodialysisBaseException(Exception):
         super().__init__(message)
 
 
-class PatientNotFoundException(HemodialysisBaseException):
-    pass
+# ============================================================
+# app/exceptions/business_exceptions.py
+# ============================================================
+"""
+Exception های Business Logic سیستم
+
+هر exception:
+- پیام فارسی قابل فهم دارد
+- کد یکتا برای HTTP handler دارد
+- details اختیاری برای debug دارد
+"""
+
+from typing import Any, Optional
 
 
-class UserNotFoundException(HemodialysisBaseException):
-    pass
+class BaseBusinessException(Exception):
+    """پایه همه exception های business logic"""
+
+    error_code: str = "BUSINESS_ERROR"
+    default_message: str = "خطای سیستمی رخ داده است"
+
+    def __init__(
+        self,
+        message: Optional[str] = None,
+        details: Optional[dict[str, Any]] = None,
+    ):
+        self.message = message or self.default_message
+        self.details = details or {}
+        super().__init__(self.message)
 
 
-class DuplicatePhoneNumberException(HemodialysisBaseException):
-    pass
+# ============================================================
+# Patient Exceptions
+# ============================================================
+
+class PatientNotFoundException(BaseBusinessException):
+    error_code = "PATIENT_NOT_FOUND"
+    default_message = "بیمار یافت نشد"
 
 
-class DuplicateMedicalRecordException(HemodialysisBaseException):
-    pass
+class DuplicateMedicalRecordException(BaseBusinessException):
+    error_code = "DUPLICATE_MEDICAL_RECORD"
+    default_message = "کد بیمارستانی از قبل وجود دارد"
 
 
-class InvalidCredentialsException(HemodialysisBaseException):
-    pass
+class PatientInactiveException(BaseBusinessException):
+    error_code = "PATIENT_INACTIVE"
+    default_message = "بیمار غیرفعال است"
 
 
-class InactiveUserException(HemodialysisBaseException):
-    pass
+# ============================================================
+# Session Exceptions
+# ============================================================
+
+class DuplicateSessionException(BaseBusinessException):
+    error_code = "DUPLICATE_SESSION"
+    default_message = "جلسه دیالیز برای این تاریخ قبلاً ثبت شده است"
 
 
-class TokenBlacklistedException(HemodialysisBaseException):
-    pass
+class SessionNotFoundException(BaseBusinessException):
+    error_code = "SESSION_NOT_FOUND"
+    default_message = "جلسه دیالیز یافت نشد"
 
 
-class InsufficientPermissionsException(HemodialysisBaseException):
-    pass
+class SessionEditExpiredException(BaseBusinessException):
+    error_code = "SESSION_EDIT_EXPIRED"
+    default_message = "مهلت ویرایش جلسه منقضی شده است"
 
 
-class InvalidLabValueException(HemodialysisBaseException):
-    pass
+# ============================================================
+# Validation Exceptions
+# ============================================================
+
+class InvalidWeightException(BaseBusinessException):
+    error_code = "INVALID_WEIGHT"
+    default_message = "مقدار وزن وارد‌شده معتبر نیست"
 
 
-class InvalidBPException(HemodialysisBaseException):
-    pass
+class InvalidBPException(BaseBusinessException):
+    error_code = "INVALID_BLOOD_PRESSURE"
+    default_message = "مقدار فشار خون وارد‌شده معتبر نیست"
 
 
-class InvalidWeightException(HemodialysisBaseException):
-    pass
+class InvalidLabValueException(BaseBusinessException):
+    error_code = "INVALID_LAB_VALUE"
+    default_message = "مقدار آزمایش وارد‌شده معتبر نیست"
 
 
-class DuplicateLabPanelException(HemodialysisBaseException):
-    pass
+class DuplicateLabPanelException(BaseBusinessException):
+    error_code = "DUPLICATE_LAB_PANEL"
+    default_message = "پنل آزمایش تکراری است"
 
 
-class DuplicateSessionException(HemodialysisBaseException):
-    pass
+# ============================================================
+# Auth Exceptions
+# ============================================================
+
+class InvalidCredentialsException(BaseBusinessException):
+    error_code = "INVALID_CREDENTIALS"
+    default_message = "نام کاربری یا رمز عبور اشتباه است"
 
 
-class SessionAlreadyExistsException(HemodialysisBaseException):
-    pass
+class TokenExpiredException(BaseBusinessException):
+    error_code = "TOKEN_EXPIRED"
+    default_message = "توکن منقضی شده است"
 
 
-#class RecommendationAlreadyReviewedException(HemodialysisBaseException):
-#    pass
+class TokenBlacklistedException(BaseBusinessException):
+    error_code = "TOKEN_BLACKLISTED"
+    default_message = "توکن باطل شده است"
 
 
-class OwnResourceAccessException(HemodialysisBaseException):
-    pass
+class InsufficientPermissionsException(BaseBusinessException):
+    error_code = "INSUFFICIENT_PERMISSIONS"
+    default_message = "دسترسی کافی ندارید"
 
 
-class InvalidPasswordException(HemodialysisBaseException):
-    pass
+class UnauthorizedAccessException(BaseBusinessException):
+    error_code = "UNAUTHORIZED_ACCESS"
+    default_message = "دسترسی به این منبع مجاز نیست"
 
 
-class WeakPasswordException(HemodialysisBaseException):
-    pass
+class RateLimitExceededException(BaseBusinessException):
+    error_code = "RATE_LIMIT_EXCEEDED"
+    default_message = "تعداد تلاش‌های مجاز تجاوز شده است"
 
+
+# ============================================================
+# Alert & Recommendation Exceptions
+# ============================================================
+
+class AlertNotFoundException(BaseBusinessException):
+    error_code = "ALERT_NOT_FOUND"
+    default_message = "هشدار یافت نشد"
+
+
+class InvalidStateTransitionException(BaseBusinessException):
+    error_code = "INVALID_STATE_TRANSITION"
+    default_message = "تغییر وضعیت مجاز نیست"
+
+
+class RecommendationNotFoundException(BaseBusinessException):
+    error_code = "RECOMMENDATION_NOT_FOUND"
+    default_message = "توصیه یافت نشد"
+
+
+class RecommendationAlreadyReviewedException(BaseBusinessException):
+    error_code = "RECOMMENDATION_ALREADY_REVIEWED"
+    default_message = "این توصیه قبلاً بررسی شده است"
+
+
+# ============================================================
+# Message Exceptions
+# ============================================================
+
+class MessageNotFoundException(BaseBusinessException):
+    error_code = "MESSAGE_NOT_FOUND"
+    default_message = "پیام یافت نشد"
+
+
+# ============================================================
+# Education Exceptions
+# ============================================================
+
+class EducationContentNotFoundException(BaseBusinessException):
+    error_code = "EDUCATION_NOT_FOUND"
+    default_message = "محتوای آموزشی یافت نشد"
+
+
+class DuplicateTopicCodeException(BaseBusinessException):
+    error_code = "DUPLICATE_TOPIC_CODE"
+    default_message = "کد موضوع آموزشی تکراری است"
 
 """
 Exception های اضافه‌شده برای TASK-024/026
