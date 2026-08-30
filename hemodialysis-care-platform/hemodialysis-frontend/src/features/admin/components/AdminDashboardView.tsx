@@ -23,7 +23,7 @@ function ServiceStatus({
 }: {
   label: string;
   status: "ok" | "error" | "unknown";
-  icon: React.ElementType;
+  icon: React.ComponentType<{ className?: string }>;
 }) {
   const cfg = {
     ok: {
@@ -153,7 +153,7 @@ interface StatCardProps {
   label: string;
   value: number;
   sub?: string;
-  icon: React.ElementType;
+  icon: React.ComponentType<{ className?: string }>;
   color: string;
   bg: string;
   border: string;

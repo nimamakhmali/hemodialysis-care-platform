@@ -18,7 +18,7 @@ export const pageVariants: Variants = {
     filter: "blur(0px)",
     transition: {
       duration: 0.45,
-      ease: [0.22, 1, 0.36, 1],
+      ease: ease.smooth,
       staggerChildren: 0.07,
     },
   },
@@ -31,16 +31,16 @@ export const pageVariants: Variants = {
 };
 
 // ── Stagger Container ─────────────────────────
-export const staggerContainer: Variants = {
+export const staggerContainer = (stagger = 0.08, delay = 0.1): Variants => ({
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.08,
-      delayChildren: 0.1,
+      staggerChildren: stagger,
+      delayChildren: delay,
     },
   },
-};
+});
 
 // ── Card Variants ─────────────────────────────
 export const cardVariants: Variants = {
@@ -55,7 +55,7 @@ export const cardVariants: Variants = {
     scale: 1,
     transition: {
       duration: 0.4,
-      ease: [0.22, 1, 0.36, 1],
+      ease: ease.smooth,
     },
   },
 };
@@ -71,7 +71,7 @@ export const listItemVariants: Variants = {
     x: 0,
     transition: {
       duration: 0.35,
-      ease: [0.22, 1, 0.36, 1],
+      ease: ease.smooth,
     },
   },
 };
@@ -82,7 +82,7 @@ export const fadeUpVariants: Variants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
+    transition: { duration: 0.4, ease: ease.smooth },
   },
 };
 
@@ -92,7 +92,7 @@ export const scaleInVariants: Variants = {
   visible: {
     opacity: 1,
     scale: 1,
-    transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
+    transition: { duration: 0.35, ease: ease.smooth },
   },
 };
 
@@ -102,7 +102,7 @@ export const slideRightVariants: Variants = {
   visible: {
     opacity: 1,
     x: 0,
-    transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
+    transition: { duration: 0.4, ease: ease.smooth },
   },
   exit: {
     opacity: 0,
@@ -161,7 +161,7 @@ export const progressVariants = {
   visible: (width: number) => ({
     scaleX: width / 100,
     originX: 0,
-    transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.2 },
+    transition: { duration: 0.8, ease: ease.smooth, delay: 0.2 },
   }),
 };
 
@@ -181,7 +181,7 @@ export const fadeInUp = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] },
+    transition: { duration: 0.45, ease: ease.smooth },
   },
 };
 
@@ -196,7 +196,7 @@ export const scaleIn = {
   visible: {
     opacity: 1,
     scale: 1,
-    transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
+    transition: { duration: 0.4, ease: ease.smooth },
   },
 };
 
@@ -205,7 +205,7 @@ export const slideInRight = {
   visible: {
     opacity: 1,
     x: 0,
-    transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
+    transition: { duration: 0.4, ease: ease.smooth },
   },
 };
 

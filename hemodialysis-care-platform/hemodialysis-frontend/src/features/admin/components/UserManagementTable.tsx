@@ -433,7 +433,7 @@ function ActionButton({
   onClick,
   danger,
 }: {
-  icon: React.ElementType;
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
   onClick: () => void;
   danger?: boolean;

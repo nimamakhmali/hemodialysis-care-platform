@@ -69,6 +69,8 @@ export const QUERY_KEYS = {
   // Diet
   dietHistory: (patientId: string, params?: Record<string, unknown>) =>
     ['patients', patientId, 'diet', params] as const,
+  dietSummary: (patientId: string) =>
+    ['patients', patientId, 'diet', 'summary'] as const,
 
   // Alerts
   alerts: (params?: Record<string, unknown>) =>
@@ -106,7 +108,7 @@ export const QUERY_KEYS = {
   adminUsers: (params?: Record<string, unknown>) =>
     ['admin', 'users', params] as const,
   adminUser: (id: string) => ['admin', 'users', id] as const,
-  auditLogs: (params?: Record<string, unknown>) =>
+  adminAuditLogs: (params?: Record<string, unknown>) =>
     ['admin', 'audit-logs', params] as const,
   systemHealth: ['admin', 'system', 'health'] as const,
   systemStats: ['admin', 'system', 'stats'] as const,

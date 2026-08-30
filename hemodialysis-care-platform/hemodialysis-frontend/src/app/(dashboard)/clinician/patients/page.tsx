@@ -52,7 +52,7 @@ function QuickStats({
   return (
     <motion.div
       className="grid grid-cols-3 gap-3"
-      variants={staggerContainer}
+      variants={staggerContainer()}
       initial="hidden"
       animate="visible"
     >
