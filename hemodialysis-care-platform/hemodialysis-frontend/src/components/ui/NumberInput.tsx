@@ -13,7 +13,7 @@ interface NumberInputProps
   status?: HealthStatus
   refRangeLow?: number
   refRangeHigh?: number
-  onChange?: (value: number | '') => void
+  onValueChange?: (value: number | '') => void
   wrapperClassName?: string
   optional?: boolean
 }
@@ -90,7 +90,7 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
             )}
             onChange={(e) => {
               const raw = e.target.value
-              onChange?.(raw === '' ? '' : parseFloat(raw))
+              onValueChange?.(raw === '' ? '' : parseFloat(raw))
             }}
             {...props}
           />

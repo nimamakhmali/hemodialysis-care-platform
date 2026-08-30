@@ -161,3 +161,14 @@ export function calculateUFVolume(
   if (!postWeight) return null
   return Math.max(0, preWeight - postWeight)
 }
+
+
+export const SESSION_EVENTS_FA: Record<string, string> = {
+  hypotension: 'افت فشار خون',
+  muscle_cramp: 'گرفتگی عضلات',
+  nausea_vomiting: 'تهوع/استفراغ',
+  headache: 'سردرد',
+  chest_pain: 'درد قفسه سینه',
+  access_problem: 'مشکل دسترسی عروقی',
+  other: 'سایر',
+}

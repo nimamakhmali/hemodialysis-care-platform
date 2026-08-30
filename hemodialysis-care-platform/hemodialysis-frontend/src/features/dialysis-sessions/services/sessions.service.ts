@@ -1,74 +1,61 @@
-import apiClient from "@/lib/api/client";
-import { API_ENDPOINTS } from "@/lib/api/endpoints";
-import type { ApiResponse } from "@/types/api.types";
+// src/features/dialysis-sessions/services/sessions.service.ts
+
+import apiClient from '@/lib/api/client'
+import { API_ENDPOINTS } from '@/lib/api/endpoints'
 import type {
-  DialysisSession,
-  SessionsResponse,
-  WeightTrend,
-  BPTrend,
-  CreateSessionForm,
-  SessionFilters,
-} from "../types/session.types";
+  SessionFormData,
+} from '../types/session.types'
 
 export const sessionsService = {
-  async getAll(
+  async getSessions(
     patientId: string,
-    filters: SessionFilters = {}
-  ): Promise<SessionsResponse> {
-    const params = new URLSearchParams();
-    if (filters.from_date) params.set("from_date", filters.from_date);
-    if (filters.to_date) params.set("to_date", filters.to_date);
-    params.set("page", String(filters.page ?? 1));
-    params.set("size", String(filters.size ?? 20));
-
-    const res = await apiClient.get<SessionsResponse>(
-      `${API_ENDPOINTS.sessions.list(patientId)}?${params.toString()}`
-    );
-    return res.data;
+    params?: { page?: number; size?: number }
+  ) {
+    const { data } = await apiClient.get(
+      API_ENDPOINTS.sessions.list(patientId),
+      { params }
+    )
+    return data
   },
 
-  async getById(patientId: string, sessionId: string): Promise<DialysisSession> {
-    const res = await apiClient.get<ApiResponse<DialysisSession>>(
+  async getSession(patientId: string, sessionId: string) {
+    const { data } = await apiClient.get(
       API_ENDPOINTS.sessions.detail(patientId, sessionId)
-    );
-    return res.data.data;
+    )
+    return data
   },
 
-  async create(
-    patientId: string,
-    data: CreateSessionForm
-  ): Promise<{ data: DialysisSession; warnings: string[] }> {
-    const res = await apiClient.post<{
-      success: boolean;
-      data: DialysisSession;
-      warnings: string[];
-    }>(API_ENDPOINTS.sessions.create(patientId), data);
-    return { data: res.data.data, warnings: res.data.warnings ?? [] };
+  async createSession(patientId: string, payload: SessionFormData) {
+    const { data } = await apiClient.post(
+      API_ENDPOINTS.sessions.list(patientId),
+      payload
+    )
+    return data
   },
 
-  async update(
+  async updateSession(
     patientId: string,
     sessionId: string,
-    data: Partial<CreateSessionForm>
-  ): Promise<DialysisSession> {
-    const res = await apiClient.put<ApiResponse<DialysisSession>>(
-      API_ENDPOINTS.sessions.update(patientId, sessionId),
-      data
-    );
-    return res.data.data;
+    payload: Partial<SessionFormData>
+  ) {
+    const { data } = await apiClient.put(
+      API_ENDPOINTS.sessions.detail(patientId, sessionId),
+      payload
+    )
+    return data
   },
 
-  async getWeightTrend(patientId: string, n = 8): Promise<WeightTrend> {
-    const res = await apiClient.get<ApiResponse<WeightTrend>>(
-      `${API_ENDPOINTS.sessions.weightTrend(patientId)}?n=${n}`
-    );
-    return res.data.data;
+  async getWeightTrend(patientId: string) {
+    const { data } = await apiClient.get(
+      API_ENDPOINTS.sessions.weightTrend(patientId)
+    )
+    return data
   },
 
-  async getBPTrend(patientId: string, n = 8): Promise<BPTrend> {
-    const res = await apiClient.get<ApiResponse<BPTrend>>(
-      `${API_ENDPOINTS.sessions.bpTrend(patientId)}?n=${n}`
-    );
-    return res.data.data;
+  async getBPTrend(patientId: string) {
+    const { data } = await apiClient.get(
+      API_ENDPOINTS.sessions.bpTrend(patientId)
+    )
+    return data
   },
-};
+}

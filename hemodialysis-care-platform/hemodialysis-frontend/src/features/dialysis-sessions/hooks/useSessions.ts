@@ -1,63 +1,56 @@
-"use client";
+// src/features/dialysis-sessions/hooks/useSessions.ts
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { sessionsService } from "../services/sessions.service";
-import type { CreateSessionForm, SessionFilters } from "../types/session.types";
-import { toast } from "react-hot-toast";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { sessionsService } from '../services/sessions.service'
+import { QUERY_KEYS } from '@/lib/query/queryClient'
+import toast from 'react-hot-toast'
 
-export const SESSION_KEYS = {
-  all: (patientId: string) => ["sessions", patientId] as const,
-  list: (patientId: string, filters: SessionFilters) =>
-    [...SESSION_KEYS.all(patientId), "list", filters] as const,
-  detail: (patientId: string, sessionId: string) =>
-    [...SESSION_KEYS.all(patientId), sessionId] as const,
-  weightTrend: (patientId: string, n: number) =>
-    [...SESSION_KEYS.all(patientId), "weight-trend", n] as const,
-  bpTrend: (patientId: string, n: number) =>
-    [...SESSION_KEYS.all(patientId), "bp-trend", n] as const,
-};
-
-export function useSessions(patientId: string, filters: SessionFilters = {}) {
+export function useSessions(patientId: string, params?: { page?: number; size?: number }) {
   return useQuery({
-    queryKey: SESSION_KEYS.list(patientId, filters),
-    queryFn: () => sessionsService.getAll(patientId, filters),
-    enabled: Boolean(patientId),
-    placeholderData: (prev) => prev,
+    queryKey: [QUERY_KEYS.sessions, patientId, params],
+    queryFn: () => sessionsService.getSessions(patientId, params),
+    enabled: !!patientId,
     staleTime: 2 * 60 * 1000,
-  });
+  })
 }
 
-export function useWeightTrend(patientId: string, n = 8) {
+export function useSession(patientId: string, sessionId: string) {
   return useQuery({
-    queryKey: SESSION_KEYS.weightTrend(patientId, n),
-    queryFn: () => sessionsService.getWeightTrend(patientId, n),
-    enabled: Boolean(patientId),
-    staleTime: 3 * 60 * 1000,
-  });
-}
-
-export function useBPTrend(patientId: string, n = 8) {
-  return useQuery({
-    queryKey: SESSION_KEYS.bpTrend(patientId, n),
-    queryFn: () => sessionsService.getBPTrend(patientId, n),
-    enabled: Boolean(patientId),
-    staleTime: 3 * 60 * 1000,
-  });
+    queryKey: [QUERY_KEYS.sessions, patientId, sessionId],
+    queryFn: () => sessionsService.getSession(patientId, sessionId),
+    enabled: !!patientId && !!sessionId,
+  })
 }
 
 export function useCreateSession(patientId: string) {
-  const qc = useQueryClient();
+  const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: CreateSessionForm) =>
-      sessionsService.create(patientId, data),
-    onSuccess: ({ warnings }) => {
-      qc.invalidateQueries({ queryKey: SESSION_KEYS.all(patientId) });
-      qc.invalidateQueries({ queryKey: ["patients"] });
-      if (warnings.length > 0) {
-        warnings.forEach((w) => toast(w, { icon: "⚠️" }));
-      }
-      toast.success("جلسه دیالیز ثبت شد");
+    mutationFn: (data: any) => sessionsService.createSession(patientId, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [QUERY_KEYS.sessions, patientId] })
+      qc.invalidateQueries({ queryKey: [QUERY_KEYS.patients, patientId] })
+      toast.success('جلسه دیالیز با موفقیت ثبت شد')
     },
-    onError: () => toast.error("خطا در ثبت جلسه"),
-  });
+    onError: () => {
+      toast.error('خطا در ثبت جلسه دیالیز')
+    },
+  })
+}
+
+export function useWeightTrend(patientId: string) {
+  return useQuery({
+    queryKey: [QUERY_KEYS.sessions, patientId, 'weight-trend'],
+    queryFn: () => sessionsService.getWeightTrend(patientId),
+    enabled: !!patientId,
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+export function useBPTrend(patientId: string) {
+  return useQuery({
+    queryKey: [QUERY_KEYS.sessions, patientId, 'bp-trend'],
+    queryFn: () => sessionsService.getBPTrend(patientId),
+    enabled: !!patientId,
+    staleTime: 5 * 60 * 1000,
+  })
 }
