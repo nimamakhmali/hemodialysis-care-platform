@@ -1,0 +1,10 @@
+version: '3.8'
+services:
+  frontend:
+    build: .
+    ports:
+      - '3000:3000'
+    environment:
+      - NEXT_PUBLIC_API_URL=${API_URL}
+      - NODE_ENV=production
+    restart: unless-stopped
