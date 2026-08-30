@@ -1,7 +1,11 @@
-export * from "./components/LabHistoryTable";
-export * from "./components/LabResultCard";
-export * from "./components/LabStatusIndicator";
-export * from "./components/LabSummaryGrid";
-export * from "./hooks/useLabResults";
-export * from "./services/labs.service";
-export type * from "./types/lab.types";
+// src/features/lab-results/index.ts
+export * from './types/lab.types'
+export * from './services/labs.service'
+export * from './hooks/useLabResults'
+export * from './components/LabResultCard'
+export * from './components/LabSummaryGrid'
+export * from './components/LabHistoryTable'
+export * from './components/LabTrendChart'
+export * from './components/LabPanelForm'
+export * from './components/LabStatusBadge'
+export * from './components/LabRangeIndicator'
