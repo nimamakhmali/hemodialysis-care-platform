@@ -1,188 +1,310 @@
+// src/features/alerts/components/AlertFeed.tsx
 "use client";
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Bell, Filter, RefreshCw } from "lucide-react";
-import { cn } from "@/lib/utils/cn";
-import { useAlerts } from "../hooks/useAlerts";
-import { AlertCard } from "./AlertCard";
+import {
+  Bell,
+  CheckCircle,
+  XCircle,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  Filter,
+} from "lucide-react";
+import { useAlerts, useAcknowledgeAlert, useResolveAlert } from "../hooks/useAlerts";
+import type { AlertFilters, Alert } from "../types/alert.types";
 import type { AlertSeverity, AlertStatus } from "@/types/common.types";
+import { cn } from "@/lib/utils/cn";
+import { getSeverityColor, getSeverityLabel } from "@/lib/utils/medical.utils";
+import { formatRelativeTime } from "@/lib/utils/date.utils";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { useRouter } from "next/navigation";
 
-type SeverityFilter = AlertSeverity | "all";
-type StatusFilter = AlertStatus | "all";
+interface AlertCardProps {
+  alert: Alert;
+  onAcknowledge: (id: string) => void;
+  onResolve: (id: string) => void;
+  isLoading?: boolean;
+}
 
-const SEVERITY_OPTS: { value: SeverityFilter; label: string }[] = [
-  { value: "all", label: "همه" },
-  { value: "high", label: "بحرانی" },
-  { value: "medium", label: "متوسط" },
-  { value: "low", label: "کم" },
-];
+function AlertCard({ alert, onAcknowledge, onResolve, isLoading }: AlertCardProps) {
+  const [expanded, setExpanded] = useState(false);
+  const router = useRouter();
+  const colors = getSeverityColor(alert.severity);
 
-const STATUS_OPTS: { value: StatusFilter; label: string }[] = [
-  { value: "all", label: "همه وضعیت‌ها" },
-  { value: "new", label: "جدید" },
-  { value: "acknowledged", label: "دیده‌شده" },
-  { value: "resolved", label: "بسته" },
-];
-
-function FilterPill({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
   return (
-    <motion.button
-      onClick={onClick}
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
       className={cn(
-        "rounded-xl border px-3.5 py-1.5 text-xs font-medium transition-all",
-        active
-          ? "border-primary-400 bg-primary-50 text-primary-700"
-          : "border-slate-200 bg-white text-slate-500 hover:border-primary-200"
+        "rounded-2xl border overflow-hidden transition-shadow",
+        "hover:shadow-md",
+        colors.border,
+        alert.status === "resolved" && "opacity-60"
       )}
-      whileHover={{ scale: 1.03 }}
-      whileTap={{ scale: 0.97 }}
     >
-      {label}
-    </motion.button>
+      {/* Top bar */}
+      <div className={cn("h-1", colors.dot.replace("bg-", "bg-"))} />
+
+      <div className="bg-white p-5">
+        {/* Header row */}
+        <div className="flex items-start gap-4">
+          {/* Severity dot */}
+          <div
+            className={cn(
+              "mt-1 w-2.5 h-2.5 rounded-full shrink-0 ring-4",
+              colors.dot,
+              colors.ring
+            )}
+          />
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span
+                    className={cn(
+                      "text-xs font-semibold px-2 py-0.5 rounded-full",
+                      colors.badge
+                    )}
+                  >
+                    {getSeverityLabel(alert.severity)}
+                  </span>
+                  {alert.category_fa && (
+                    <span className="text-xs text-slate-400 bg-slate-100 
+                                     px-2 py-0.5 rounded-full">
+                      {alert.category_fa}
+                    </span>
+                  )}
+                  <span className="text-xs text-slate-400">
+                    {formatRelativeTime(alert.created_at)}
+                  </span>
+                </div>
+                <h4 className="mt-2 text-sm font-semibold text-slate-800">
+                  {alert.title}
+                </h4>
+                {alert.patient_name && (
+                  <button
+                    onClick={() =>
+                      router.push(`/clinician/patients/${alert.patient_id}`)
+                    }
+                    className="text-xs text-sky-600 hover:text-sky-700 
+                               flex items-center gap-1 mt-0.5"
+                  >
+                    {alert.patient_name}
+                    <ExternalLink className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-2 shrink-0">
+                {alert.status === "new" && (
+                  <button
+                    onClick={() => onAcknowledge(alert.id)}
+                    disabled={isLoading}
+                    className="text-xs px-3 py-1.5 rounded-lg bg-slate-100 
+                               hover:bg-sky-50 hover:text-sky-700 transition-colors 
+                               text-slate-600 disabled:opacity-50"
+                  >
+                    تأیید دیدن
+                  </button>
+                )}
+                {alert.status !== "resolved" && (
+                  <button
+                    onClick={() => onResolve(alert.id)}
+                    disabled={isLoading}
+                    className="text-xs px-3 py-1.5 rounded-lg bg-slate-100 
+                               hover:bg-emerald-50 hover:text-emerald-700 
+                               transition-colors text-slate-600 disabled:opacity-50"
+                  >
+                    بستن
+                  </button>
+                )}
+                <button
+                  onClick={() => setExpanded((p) => !p)}
+                  className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  {expanded ? (
+                    <ChevronUp className="w-4 h-4 text-slate-400" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-slate-400" />
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Explanation */}
+        <p className="mt-3 text-sm text-slate-600 leading-relaxed mr-6">
+          {alert.clinician_explanation}
+        </p>
+
+        {/* Expanded evidence */}
+        <AnimatePresence>
+          {expanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="mt-4 mr-6 p-4 bg-slate-50 rounded-xl">
+                <p className="text-xs font-semibold text-slate-500 mb-3 
+                              uppercase tracking-wide">
+                  داده‌های مرتبط
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {Object.entries(alert.evidence).map(([key, value]) => (
+                    <div key={key} className="text-xs">
+                      <span className="text-slate-400">{key}: </span>
+                      <span className="text-slate-700 font-medium">
+                        {String(value)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 pt-3 border-t border-slate-200">
+                  <p className="text-xs text-slate-400">
+                    قانون:{" "}
+                    <span className="font-mono text-slate-600">
+                      {alert.triggered_by_rule}
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </motion.div>
   );
 }
 
 interface AlertFeedProps {
   patientId?: string;
-  className?: string;
 }
 
-export function AlertFeed({ patientId, className }: AlertFeedProps) {
-  const [severityFilter, setSeverityFilter] = useState<SeverityFilter>("all");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("new");
-
-  const { data, isLoading, isError, refetch, isFetching } = useAlerts({
-    severity: severityFilter === "all" ? undefined : severityFilter,
-    status: statusFilter === "all" ? undefined : statusFilter,
+export function AlertFeed({ patientId }: AlertFeedProps) {
+  const [filters, setFilters] = useState<AlertFilters>({
+    page: 1,
+    size: 20,
   });
+  const [showFilters, setShowFilters] = useState(false);
 
-  const alerts = data?.data ?? [];
-  const stats = data?.stats;
+  const { data, isLoading } = useAlerts(
+    patientId ? { ...filters, patient_id: patientId } : filters
+  );
+  const acknowledge = useAcknowledgeAlert();
+  const resolve = useResolveAlert();
+
+  const severities: Array<{ value: AlertSeverity | undefined; label: string }> =
+    [
+      { value: undefined, label: "همه" },
+      { value: "high", label: "بحرانی" },
+      { value: "medium", label: "متوسط" },
+      { value: "low", label: "کم" },
+    ];
+
+  const statuses: Array<{ value: AlertStatus | undefined; label: string }> = [
+    { value: undefined, label: "همه" },
+    { value: "new", label: "جدید" },
+    { value: "acknowledged", label: "دیده‌شده" },
+    { value: "resolved", label: "بسته" },
+  ];
 
   return (
-    <div className={cn("space-y-4", className)}>
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Bell className="h-4.5 w-4.5 text-primary-500" />
-          <h3 className="text-sm font-semibold text-slate-700">
-            هشدارهای بالینی
-          </h3>
-          {stats && stats.total_new > 0 && (
-            <motion.span
-              className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white"
-              animate={{ scale: [1, 1.1, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
+    <div className="space-y-4">
+      {/* Filter Bar */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 flex-wrap">
+          {severities.map(({ value, label }) => (
+            <button
+              key={label}
+              onClick={() => setFilters((f) => ({ ...f, severity: value, page: 1 }))}
+              className={cn(
+                "px-3 py-1.5 rounded-xl text-xs font-medium transition-colors",
+                filters.severity === value
+                  ? "bg-sky-500 text-white"
+                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+              )}
             >
-              {stats.total_new}
-            </motion.span>
-          )}
-        </div>
-
-        <motion.button
-          onClick={() => refetch()}
-          disabled={isFetching}
-          className="flex items-center gap-1.5 rounded-xl border border-primary-100 px-3 py-1.5 text-xs text-slate-500 hover:border-primary-200 hover:text-primary-600 transition-colors"
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-        >
-          <motion.div animate={{ rotate: isFetching ? 360 : 0 }} transition={{ duration: 1, repeat: isFetching ? Infinity : 0, ease: "linear" }}>
-            <RefreshCw className="h-3 w-3" />
-          </motion.div>
-          به‌روزرسانی
-        </motion.button>
-      </div>
-
-      {/* Filters */}
-      <div className="space-y-2">
-        <div className="flex flex-wrap gap-1.5">
-          {SEVERITY_OPTS.map((opt) => (
-            <FilterPill
-              key={opt.value}
-              label={opt.label}
-              active={severityFilter === opt.value}
-              onClick={() => setSeverityFilter(opt.value)}
-            />
+              {label}
+            </button>
           ))}
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {STATUS_OPTS.map((opt) => (
-            <FilterPill
-              key={opt.value}
-              label={opt.label}
-              active={statusFilter === opt.value}
-              onClick={() => setStatusFilter(opt.value)}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Stats row */}
-      {stats && (
-        <motion.div
-          className="grid grid-cols-3 gap-2"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-        >
-          {[
-            { label: "بحرانی", count: stats.total_high, color: "text-red-600 bg-red-50 ring-red-200" },
-            { label: "متوسط", count: stats.total_medium, color: "text-amber-600 bg-amber-50 ring-amber-200" },
-            { label: "کم", count: stats.total_low, color: "text-blue-600 bg-blue-50 ring-blue-200" },
-          ].map((s) => (
-            <div
-              key={s.label}
-              className={cn("flex items-center justify-between rounded-xl px-3 py-2 ring-1", s.color)}
+          <div className="w-px h-4 bg-slate-200" />
+          {statuses.map(({ value, label }) => (
+            <button
+              key={label}
+              onClick={() => setFilters((f) => ({ ...f, status: value, page: 1 }))}
+              className={cn(
+                "px-3 py-1.5 rounded-xl text-xs font-medium transition-colors",
+                filters.status === value
+                  ? "bg-slate-700 text-white"
+                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+              )}
             >
-              <span className="text-xs font-medium">{s.label}</span>
-              <span className="text-sm font-bold">{s.count}</span>
-            </div>
+              {label}
+            </button>
           ))}
-        </motion.div>
-      )}
+        </div>
 
-      {/* Content */}
-      {isLoading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-24 animate-pulse rounded-2xl bg-slate-100" />
-          ))}
-        </div>
-      ) : isError ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
-          <p className="text-sm text-red-600">خطا در دریافت هشدارها</p>
-        </div>
-      ) : alerts.length === 0 ? (
-        <motion.div
-          className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/40 py-12"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-        >
-          <motion.div
-            className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100"
-            animate={{ y: [0, -4, 0] }}
-            transition={{ duration: 3, repeat: Infinity }}
-          >
-            <Bell className="h-6 w-6 text-emerald-500" />
-          </motion.div>
-          <p className="text-sm text-slate-500">هشداری در این فیلتر وجود ندارد</p>
-        </motion.div>
-      ) : (
-        <AnimatePresence mode="popLayout">
-          <div className="space-y-3">
-            {alerts.map((alert, i) => (
-              <AlertCard key={alert.id} alert={alert} index={i} />
-            ))}
+        {data?.stats && (
+          <div className="flex items-center gap-3 text-xs text-slate-400">
+            <span>
+              <span className="text-red-600 font-semibold">
+                {data.stats.total_high}
+              </span>{" "}
+              بحرانی
+            </span>
+            <span>
+              <span className="text-amber-600 font-semibold">
+                {data.stats.total_medium}
+              </span>{" "}
+              متوسط
+            </span>
+            <span>
+              <span className="text-sky-600 font-semibold">
+                {data.stats.total_new}
+              </span>{" "}
+              جدید
+            </span>
           </div>
-        </AnimatePresence>
+        )}
+      </div>
+
+      {/* Alerts */}
+      {isLoading ? (
+        <div className="space-y-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-32 rounded-2xl" />
+          ))}
+        </div>
+      ) : data?.data.length === 0 ? (
+        <div className="py-20 flex flex-col items-center gap-3 text-slate-400">
+          <Bell className="w-12 h-12 opacity-20" />
+          <p>هشداری برای نمایش وجود ندارد</p>
+        </div>
+      ) : (
+        <motion.div
+          layout
+          className="space-y-3"
+        >
+          {data?.data.map((alert) => (
+            <AlertCard
+              key={alert.id}
+              alert={alert}
+              onAcknowledge={(id) =>
+                acknowledge.mutate({ alertId: id })
+              }
+              onResolve={(id) => resolve.mutate({ alertId: id })}
+              isLoading={acknowledge.isPending || resolve.isPending}
+            />
+          ))}
+        </motion.div>
       )}
     </div>
   );

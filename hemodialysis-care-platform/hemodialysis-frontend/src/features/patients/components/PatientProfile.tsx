@@ -12,6 +12,7 @@ import {
   Edit3,
   Shield,
   AlertTriangle,
+  Sparkles,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
@@ -25,15 +26,20 @@ import { SessionList } from "@/features/dialysis-sessions/components/SessionList
 import { LabHistoryTable } from "@/features/lab-results/components/LabHistoryTable";
 import { AlertFeed } from "@/features/alerts/components/AlertFeed";
 
+import { PatientTimeline } from "./PatientTimeline";
+
+import { PatientRecommendations } from "@/features/recommendations/components/PatientRecommendations";
 
 
 const TABS = [
-  { id: "overview", label: "خلاصه وضعیت", icon: Activity },
-  { id: "sessions", label: "جلسات دیالیز", icon: Droplets },
-  { id: "labs", label: "آزمایش‌ها", icon: FlaskConical },
-  { id: "alerts", label: "هشدارها", icon: Bell },
-  { id: "timeline", label: "تایم‌لاین", icon: Clock },
+  { id: "overview",         label: "خلاصه وضعیت",  icon: Activity    },
+  { id: "sessions",         label: "جلسات دیالیز", icon: Droplets    },
+  { id: "labs",             label: "آزمایش‌ها",    icon: FlaskConical },
+  { id: "alerts",           label: "هشدارها",      icon: Bell        },
+  { id: "recommendations",  label: "توصیه‌ها",     icon: Sparkles    },
+  { id: "timeline",         label: "تایم‌لاین",    icon: Clock       },
 ] as const;
+
 
 type TabId = (typeof TABS)[number]["id"];
 
@@ -440,7 +446,18 @@ export function PatientProfile({ patient }: { patient: PatientDetail }) {
               <AlertFeed patientId={patient.id} />
             </div>
           )}
-          {activeTab === "timeline" && <ComingSoonTab label="تایم‌لاین" />}
+            {activeTab === "timeline" && (
+             <div className="rounded-2xl border border-primary-100/60 bg-white p-5">
+              <PatientTimeline patientId={patient.id} />
+            </div>
+           )}
+
+            {activeTab === "recommendations" && (
+              <div className="rounded-2xl border border-primary-100/60 bg-white p-5">
+                <PatientRecommendations patientId={patient.id} />
+              </div>
+            )}
+
         </motion.div>
       </AnimatePresence>
     </div>

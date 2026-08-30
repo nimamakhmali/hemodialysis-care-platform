@@ -172,3 +172,64 @@ export const SESSION_EVENTS_FA: Record<string, string> = {
   access_problem: 'مشکل دسترسی عروقی',
   other: 'سایر',
 }
+
+// src/lib/utils/medical.utils.ts
+
+
+
+export function getSeverityColor(severity: AlertSeverity) {
+  return {
+    high: {
+      bg: "bg-red-50",
+      border: "border-red-200",
+      text: "text-red-700",
+      badge: "bg-red-100 text-red-700",
+      dot: "bg-red-500",
+      ring: "ring-red-500/30",
+    },
+    medium: {
+      bg: "bg-amber-50",
+      border: "border-amber-200",
+      text: "text-amber-700",
+      badge: "bg-amber-100 text-amber-700",
+      dot: "bg-amber-500",
+      ring: "ring-amber-500/30",
+    },
+    low: {
+      bg: "bg-sky-50",
+      border: "border-sky-200",
+      text: "text-sky-700",
+      badge: "bg-sky-100 text-sky-700",
+      dot: "bg-sky-400",
+      ring: "ring-sky-400/30",
+    },
+  }[severity];
+}
+
+
+export function getRiskLevelLabel(level: "low" | "medium" | "high") {
+  return { low: "کم", medium: "متوسط", high: "زیاد" }[level];
+}
+
+export function getRiskLevelColor(level: "low" | "medium" | "high") {
+  return {
+    low: "text-emerald-600",
+    medium: "text-amber-600",
+    high: "text-red-600",
+  }[level];
+}
+
+export function formatBP(systolic?: number | null, diastolic?: number | null) {
+  if (!systolic || !diastolic) return "—";
+  return `${systolic}/${diastolic}`;
+}
+
+export function formatWeight(value?: number | null, unit = "kg") {
+  if (value == null) return "—";
+  return `${value.toFixed(1)} ${unit}`;
+}
+
+export function formatPercent(value?: number | null) {
+  if (value == null) return "—";
+  return `${value.toFixed(1)}٪`;
+}

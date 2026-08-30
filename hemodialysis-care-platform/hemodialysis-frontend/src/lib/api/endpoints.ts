@@ -2,6 +2,9 @@
 // API ENDPOINTS — مرکزی
 // ═══════════════════════════════════════════════════════════════════════
 
+
+
+
 export const API_ENDPOINTS = {
   // ─── Auth ──────────────────────────────────────────────────────────
   auth: {
@@ -23,6 +26,7 @@ export const API_ENDPOINTS = {
     dashboard: (id: string) => `/patients/${id}/dashboard/`,
     trends: (id: string) => `/patients/${id}/trends/`,
     timeline: (id: string) => `/patients/${id}/timeline/`,
+    
   },
 
   // ─── Sessions ──────────────────────────────────────────────────────
@@ -64,34 +68,42 @@ export const API_ENDPOINTS = {
   },
 
   // ─── Diet ──────────────────────────────────────────────────────────
-  diet: {
-    log: (patientId: string) => `/patients/${patientId}/diet/`,
-    history: (patientId: string) => `/patients/${patientId}/diet/`,
-  },
+diet: {
+  log:     (patientId: string) => `/patients/${patientId}/diet/`,
+  history: (patientId: string) => `/patients/${patientId}/diet/`,
+  summary: (patientId: string) => `/patients/${patientId}/diet/summary/`,  // ← جدید
+},
 
   // ─── Alerts ────────────────────────────────────────────────────────
-  alerts: {
-    all: '/alerts/',
-    patient: (patientId: string) => `/patients/${patientId}/alerts/`,
-    acknowledge: (alertId: string) => `/alerts/${alertId}/acknowledge/`,
-    resolve: (alertId: string) => `/alerts/${alertId}/resolve/`,
-  },
+// در بخش alerts — اضافه کردن stats:
+alerts: {
+  all:         '/alerts/',
+  stats:       '/alerts/stats/',                          // ← جدید
+  patient:     (patientId: string) => `/patients/${patientId}/alerts/`,
+  acknowledge: (alertId: string)   => `/alerts/${alertId}/acknowledge/`,
+  resolve:     (alertId: string)   => `/alerts/${alertId}/resolve/`,
+},
 
   // ─── Recommendations ───────────────────────────────────────────────
-  recommendations: {
-    pending: '/recommendations/pending/',
-    patient: (patientId: string) => `/patients/${patientId}/recommendations/`,
-    approve: (recId: string) => `/recommendations/${recId}/approve/`,
-    reject: (recId: string) => `/recommendations/${recId}/reject/`,
-  },
+recommendations: {
+  pending:      '/recommendations/pending/',
+  pendingCount: '/recommendations/pending-count/',       // ← جدید
+  patient:      (patientId: string) => `/patients/${patientId}/recommendations/`,
+  approve:      (recId: string)     => `/recommendations/${recId}/approve/`,
+  reject:       (recId: string)     => `/recommendations/${recId}/reject/`,
+},
+
+
+
+
 
   // ─── Messages ──────────────────────────────────────────────────────
-  messages: {
-    list: (patientId: string) => `/patients/${patientId}/messages/`,
-    read: (messageId: string) => `/messages/${messageId}/read/`,
-    unreadCount: (patientId: string) =>
-      `/patients/${patientId}/messages/unread-count/`,
-  },
+messages: {
+  list:        (patientId: string)  => `/patients/${patientId}/messages/`,
+  read:        (messageId: string)  => `/messages/${messageId}/read/`,
+  readAll:     (patientId: string)  => `/patients/${patientId}/messages/read-all/`,  // ← جدید
+  unreadCount: (patientId: string)  => `/patients/${patientId}/messages/unread-count/`,
+},
 
   // ─── Education ─────────────────────────────────────────────────────
   education: {
@@ -103,11 +115,13 @@ export const API_ENDPOINTS = {
   },
 
   // ─── Clinician ─────────────────────────────────────────────────────
-  clinician: {
-    dashboard: '/clinician/dashboard/',
-    overview: '/clinician/patients-overview/',
-    alertsFeed: '/clinician/alerts-feed/',
-  },
+clinician: {
+  dashboard:       '/clinician/dashboard/',
+  overview:        '/clinician/patients-overview/',
+  alertsFeed:      '/clinician/alerts-feed/',
+  clinicalSummary: (patientId: string) =>                 // ← جدید
+    `/clinician/patient/${patientId}/clinical-summary/`,
+},
 
   // ─── Admin ─────────────────────────────────────────────────────────
   admin: {
@@ -129,4 +143,10 @@ export const API_ENDPOINTS = {
       stats: '/admin/system/stats/',
     },
   },
+
+
+
+  
 } as const
+
+

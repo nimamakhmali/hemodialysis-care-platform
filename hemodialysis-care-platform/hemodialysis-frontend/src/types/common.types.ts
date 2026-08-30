@@ -87,6 +87,10 @@ export interface TrendResult {
   changePercent: number
 }
 
+
+
+
+
 // ─── Risk Score ─────────────────────────────────────────────────────────
 export interface RiskScore {
   score: number
@@ -207,4 +211,29 @@ export interface ActionItem {
   variant?: 'default' | 'danger' | 'warning'
   disabled?: boolean
   description?: string
+}
+
+
+
+export interface NavItem {
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string}>;
+  description?: string;
+  badge?: string | number;
+}
+
+export interface PaginatedResponse<T> {
+  success: boolean;
+  data: T[];
+  total: number;
+  page: number;
+  size: number;
+  pages: number;
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message?: string;
 }
