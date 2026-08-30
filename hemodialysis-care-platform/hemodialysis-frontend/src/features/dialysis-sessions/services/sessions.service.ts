@@ -4,6 +4,7 @@ import apiClient from '@/lib/api/client'
 import { API_ENDPOINTS } from '@/lib/api/endpoints'
 import type {
   SessionFormData,
+  BPTrendPoint,
 } from '../types/session.types'
 
 export const sessionsService = {
@@ -12,7 +13,7 @@ export const sessionsService = {
     params?: { page?: number; size?: number }
   ) {
     const { data } = await apiClient.get(
-      API_ENDPOINTS.sessions.list(patientId),
+            API_ENDPOINTS.sessions.list(patientId),
       { params }
     )
     return data
@@ -20,14 +21,14 @@ export const sessionsService = {
 
   async getSession(patientId: string, sessionId: string) {
     const { data } = await apiClient.get(
-      API_ENDPOINTS.sessions.detail(patientId, sessionId)
+            API_ENDPOINTS.sessions.detail(patientId, sessionId)
     )
     return data
   },
 
   async createSession(patientId: string, payload: SessionFormData) {
     const { data } = await apiClient.post(
-      API_ENDPOINTS.sessions.list(patientId),
+            API_ENDPOINTS.sessions.list(patientId),
       payload
     )
     return data
@@ -39,7 +40,7 @@ export const sessionsService = {
     payload: Partial<SessionFormData>
   ) {
     const { data } = await apiClient.put(
-      API_ENDPOINTS.sessions.detail(patientId, sessionId),
+            API_ENDPOINTS.sessions.detail(patientId, sessionId),
       payload
     )
     return data
@@ -47,14 +48,14 @@ export const sessionsService = {
 
   async getWeightTrend(patientId: string) {
     const { data } = await apiClient.get(
-      API_ENDPOINTS.sessions.weightTrend(patientId)
+            API_ENDPOINTS.sessions.weightTrend(patientId)
     )
     return data
   },
 
   async getBPTrend(patientId: string) {
     const { data } = await apiClient.get(
-      API_ENDPOINTS.sessions.bpTrend(patientId)
+            API_ENDPOINTS.sessions.bpTrend(patientId)
     )
     return data
   },
