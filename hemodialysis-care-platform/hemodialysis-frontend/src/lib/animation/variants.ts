@@ -5,6 +5,11 @@
 
 import type { Variants } from "motion/react";
 
+// ── Ease presets ──────────────────────────────
+export const easings = {
+  smooth: [0.22, 1, 0.36, 1] as const,
+};
+
 // ── Page Transitions ──────────────────────────
 export const pageVariants: Variants = {
   hidden: {
@@ -18,7 +23,7 @@ export const pageVariants: Variants = {
     filter: "blur(0px)",
     transition: {
       duration: 0.45,
-      ease: ease.smooth,
+      ease: easings.smooth,
       staggerChildren: 0.07,
     },
   },
@@ -55,7 +60,7 @@ export const cardVariants: Variants = {
     scale: 1,
     transition: {
       duration: 0.4,
-      ease: ease.smooth,
+      ease: easings.smooth,
     },
   },
 };
@@ -71,7 +76,7 @@ export const listItemVariants: Variants = {
     x: 0,
     transition: {
       duration: 0.35,
-      ease: ease.smooth,
+      ease: easings.smooth,
     },
   },
 };
@@ -82,7 +87,7 @@ export const fadeUpVariants: Variants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.4, ease: ease.smooth },
+    transition: { duration: 0.4, ease: easings.smooth },
   },
 };
 
@@ -92,7 +97,7 @@ export const scaleInVariants: Variants = {
   visible: {
     opacity: 1,
     scale: 1,
-    transition: { duration: 0.35, ease: ease.smooth },
+    transition: { duration: 0.35, ease: easings.smooth },
   },
 };
 
@@ -102,7 +107,7 @@ export const slideRightVariants: Variants = {
   visible: {
     opacity: 1,
     x: 0,
-    transition: { duration: 0.4, ease: ease.smooth },
+    transition: { duration: 0.4, ease: easings.smooth },
   },
   exit: {
     opacity: 0,
@@ -161,18 +166,9 @@ export const progressVariants = {
   visible: (width: number) => ({
     scaleX: width / 100,
     originX: 0,
-    transition: { duration: 0.8, ease: ease.smooth, delay: 0.2 },
+    transition: { duration: 0.8, ease: easings.smooth, delay: 0.2 },
   }),
 };
-
-// ── Ease presets ──────────────────────────────
-export const ease = {
-  smooth: [0.22, 1, 0.36, 1] as const,
-  spring: { type: "spring", stiffness: 300, damping: 30 } as const,
-  springBouncy: { type: "spring", stiffness: 400, damping: 20 } as const,
-};
-
-
 
 
 // src/lib/animation/variants.ts
@@ -181,7 +177,7 @@ export const fadeInUp = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.45, ease: ease.smooth },
+    transition: { duration: 0.45, ease: easings.smooth },
   },
 };
 
@@ -196,7 +192,7 @@ export const scaleIn = {
   visible: {
     opacity: 1,
     scale: 1,
-    transition: { duration: 0.4, ease: ease.smooth },
+    transition: { duration: 0.4, ease: easings.smooth },
   },
 };
 
@@ -205,7 +201,7 @@ export const slideInRight = {
   visible: {
     opacity: 1,
     x: 0,
-    transition: { duration: 0.4, ease: ease.smooth },
+    transition: { duration: 0.4, ease: easings.smooth },
   },
 };
 
