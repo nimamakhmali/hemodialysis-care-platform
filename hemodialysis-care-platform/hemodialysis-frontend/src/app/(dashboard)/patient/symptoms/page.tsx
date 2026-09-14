@@ -1,12 +1,22 @@
-// src/app/(dashboard)/patient/symptoms/page.tsx
-"use client";
+'use client'
 
-import { useAuthStore } from "@/features/auth/stores/auth.store";
-import { SymptomsPageView } from "@/features/symptoms/components/SymptomsPageView";
-import { PageLoader } from "@/components/feedback/PageLoader";
+import { useRequirePatientId } from '@/features/auth/hooks/useRequirePatientId'
+import { SymptomsPageView } from '@/features/symptoms/components/SymptomsPageView'
+import { PageLoader } from '@/components/feedback/PageLoader'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 export default function SymptomsPage() {
-  const user = useAuthStore((s) => s.user);
-  if (!user?.id) return <PageLoader />;
-  return <SymptomsPageView patientId={user.id} />;
+  const { patientId, isReady, hasProfile } = useRequirePatientId()
+
+  if (!isReady) return <PageLoader />
+  if (!hasProfile || !patientId) {
+    return (
+      <EmptyState
+        title="پرونده بیمار یافت نشد"
+        description="حساب کاربری شما به هیچ پرونده بیمار متصل نیست."
+      />
+    )
+  }
+
+  return <SymptomsPageView patientId={patientId} />
 }

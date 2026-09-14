@@ -37,16 +37,20 @@ export interface LoginRequest {
   password: string
 }
 
+/**
+ * پاسخ واقعی /auth/login
+ * نکته: بک‌اند فیلد را `user` برمی‌گرداند نه `user_info`
+ */
 export interface LoginResponse {
   access_token: string
   refresh_token: string
   token_type: string
-  user_info: {
+  expires_in: number
+  user: {
     id: string
-    phone_number: string
     full_name: string
+    phone_number: string
     role: import('./common.types').UserRole
-    is_active: boolean
   }
 }
 
@@ -56,11 +60,31 @@ export interface RefreshTokenRequest {
 
 export interface RefreshTokenResponse {
   access_token: string
+  token_type: string
+  expires_in: number
 }
 
 export interface ChangePasswordRequest {
   old_password: string
   new_password: string
+  confirm_new_password: string
+}
+
+/**
+ * پاسخ واقعی GET /auth/me
+ * این تنها منبع معتبر برای patient_id بیمار است (نه user.id!)
+ */
+export interface CurrentUserResponse {
+  id: string
+  full_name: string
+  phone_number: string
+  role: import('./common.types').UserRole
+  is_active: boolean
+  last_login: string | null
+  patient_profile: {
+    patient_id: string
+    medical_record_number: string
+  } | null
 }
 
 // ─── Patient ─────────────────────────────────────────────────────────────

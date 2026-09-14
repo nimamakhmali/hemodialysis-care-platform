@@ -1,12 +1,22 @@
-// src/app/(dashboard)/patient/diet/page.tsx
-"use client";
+'use client'
 
-import { useAuthStore } from "@/features/auth/stores/auth.store";
-import { DietPageView } from "@/features/fluid-diet/components/DietPageView";
-import { PageLoader } from "@/components/feedback/PageLoader";
+import { useRequirePatientId } from '@/features/auth/hooks/useRequirePatientId'
+import { DietPageView } from '@/features/fluid-diet/components/DietPageView'
+import { PageLoader } from '@/components/feedback/PageLoader'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 export default function DietPage() {
-  const user = useAuthStore((s) => s.user);
-  if (!user?.id) return <PageLoader />;
-  return <DietPageView patientId={user.id} />;
+  const { patientId, isReady, hasProfile } = useRequirePatientId()
+
+  if (!isReady) return <PageLoader />
+  if (!hasProfile || !patientId) {
+    return (
+      <EmptyState
+        title="پرونده بیمار یافت نشد"
+        description="حساب کاربری شما به هیچ پرونده بیمار متصل نیست."
+      />
+    )
+  }
+
+  return <DietPageView patientId={patientId} />
 }

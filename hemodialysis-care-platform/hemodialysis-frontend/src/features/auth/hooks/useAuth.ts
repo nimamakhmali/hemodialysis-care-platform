@@ -1,41 +1,24 @@
 'use client'
 
-import { useCallback } from 'react'
-import { useAuthStore } from '../stores/auth.store'
-import type { LoginCredentials } from '../types/auth.types'
+import { useAuth } from './useAuth'
 
-export function useAuth() {
-  const {
-    user,
-    isAuthenticated,
-    isLoading,
-    isInitialized,
-    login: storeLogin,
-    logout: storeLogout,
-  } = useAuthStore()
+interface UseRequirePatientIdResult {
+  patientId: string | null
+  isReady: boolean
+  hasProfile: boolean
+}
 
-  const login = useCallback(
-    async (credentials: LoginCredentials) => {
-      await storeLogin(credentials)
-    },
-    [storeLogin]
-  )
-
-  const logout = useCallback(async () => {
-    await storeLogout()
-  }, [storeLogout])
+/**
+ * Guard مشترک برای تمام صفحات بیمار.
+ * منبع صحیح patientId را از پروفایل اعتبارسنجی‌شده‌ی سرور (/auth/me) می‌گیرد
+ * — هرگز از User.id استفاده نمی‌کند.
+ */
+export function useRequirePatientId(): UseRequirePatientIdResult {
+  const { patientId, isInitialized, isAuthenticated } = useAuth()
 
   return {
-    user,
-    isAuthenticated,
-    isLoading,
-    isInitialized,
-    login,
-    logout,
-    isPatient: user?.role === 'patient',
-    isClinician: user?.role === 'clinician',
-    isAdmin: user?.role === 'admin',
-    fullName: user?.full_name ?? '',
-    role: user?.role,
+    patientId,
+    isReady: isInitialized && isAuthenticated,
+    hasProfile: !!patientId,
   }
 }

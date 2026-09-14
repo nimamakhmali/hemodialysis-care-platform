@@ -1,14 +1,23 @@
-// src/app/(dashboard)/patient/page.tsx
-"use client";
+'use client'
 
-import { useAuthStore } from "@/features/auth/stores/auth.store";
-import { PatientDashboard } from "@/features/dashboard/components/patient/PatientDashboard";
-import { PageLoader } from "@/components/feedback/PageLoader";
+import { useRequirePatientId } from '@/features/auth/hooks/useRequirePatientId'
+import { PatientDashboard } from '@/features/dashboard/components/patient/PatientDashboard'
+import { PageLoader } from '@/components/feedback/PageLoader'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 export default function PatientPage() {
-  const user = useAuthStore((s) => s.user);
+  const { patientId, isReady, hasProfile } = useRequirePatientId()
 
-  if (!user?.id) return <PageLoader />;
+  if (!isReady) return <PageLoader />
 
-  return <PatientDashboard patientId={user.id} />;
+  if (!hasProfile || !patientId) {
+    return (
+      <EmptyState
+        title="پرونده بیمار یافت نشد"
+        description="حساب کاربری شما به هیچ پرونده بیمار متصل نیست. لطفاً با مرکز درمانی تماس بگیرید."
+      />
+    )
+  }
+
+  return <PatientDashboard patientId={patientId} />
 }

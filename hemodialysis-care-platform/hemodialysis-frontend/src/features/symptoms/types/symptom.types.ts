@@ -7,11 +7,17 @@ export type SymptomType =
   | "access_site_pain"
   | "muscle_cramp"
   | "nausea"
+  | "vomiting"              // ← اضافه شد (از enums.py بک‌اند)
   | "itching"
   | "headache"
   | "fatigue"
   | "chest_pain"
-  | "swelling";
+  | "swelling"
+  | "loss_of_appetite"      // ← اضافه شد
+  | "excessive_thirst"      // ← اضافه شد
+  | "sleep_disturbance"     // ← اضافه شد
+  | "other";                // ← اضافه شد
+
 
 export type SymptomSeverity = "mild" | "moderate" | "severe";
 
@@ -63,11 +69,16 @@ export const SYMPTOM_LABELS: Record<SymptomType, string> = {
   access_site_pain: "درد محل فیستول",
   muscle_cramp: "کرامپ عضلانی",
   nausea: "تهوع",
+  vomiting: "استفراغ",
   itching: "خارش",
   headache: "سردرد",
   fatigue: "ضعف و بی‌حالی",
   chest_pain: "درد قفسه سینه",
   swelling: "تورم",
+  loss_of_appetite: "بی‌اشتهایی",
+  excessive_thirst: "تشنگی زیاد",
+  sleep_disturbance: "اختلال خواب",
+  other: "سایر",
 };
 
 export const SYMPTOM_EMOJIS: Record<SymptomType, string> = {
@@ -76,12 +87,18 @@ export const SYMPTOM_EMOJIS: Record<SymptomType, string> = {
   access_site_pain: "🩹",
   muscle_cramp: "⚡",
   nausea: "🤢",
+  vomiting: "🤮",
   itching: "🔴",
   headache: "🤕",
   fatigue: "😴",
   chest_pain: "💔",
   swelling: "🦵",
+  loss_of_appetite: "🍽️",
+  excessive_thirst: "🥵",
+  sleep_disturbance: "🌙",
+  other: "❓",
 };
+
 
 export const SEVERITY_LABELS: Record<SymptomSeverity, string> = {
   mild: "ملایم",

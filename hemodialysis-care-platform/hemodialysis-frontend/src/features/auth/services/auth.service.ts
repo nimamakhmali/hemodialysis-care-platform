@@ -5,8 +5,9 @@ import type {
   LoginResponse,
   RefreshTokenResponse,
   ChangePasswordRequest,
+  CurrentUserResponse,
+  ApiResponse,
 } from '@appTypes/api.types'
-import type { ApiResponse } from '@appTypes/api.types'
 
 export const authService = {
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
@@ -17,11 +18,27 @@ export const authService = {
     return data.data
   },
 
-  logout: async (): Promise<void> => {
+  /**
+   * منبع واحد حقیقت برای پروفایل کاربر جاری (شامل patient_profile).
+   * هم بعد از login و هم در initialize صدا زده می‌شود تا هیچ‌وقت
+   * user-state بدون اعتبارسنجی سرور ست نشود.
+   */
+  getMe: async (): Promise<CurrentUserResponse> => {
+    const { data } = await apiClient.get<ApiResponse<CurrentUserResponse>>(
+      API_ENDPOINTS.auth.me
+    )
+    return data.data
+  },
+
+  logout: async (refreshToken?: string | null): Promise<void> => {
     try {
-      await apiClient.post(API_ENDPOINTS.auth.logout)
+      // refresh_token باید ارسال شود تا بک‌اند بتواند آن را هم
+      // blacklist کند؛ در غیر این صورت بعد از logout همچنان معتبر می‌ماند.
+      await apiClient.post(API_ENDPOINTS.auth.logout, {
+        refresh_token: refreshToken ?? undefined,
+      })
     } catch {
-      // Ignore logout errors — clean local state regardless
+      // خطای logout نباید مانع پاک شدن state محلی شود
     }
   },
 

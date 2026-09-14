@@ -20,10 +20,13 @@ export function usePermission() {
     return ROLE_HIERARCHY[user.role] >= ROLE_HIERARCHY[minRole]
   }
 
-  const canAccessPatient = (patientUserId?: string): boolean => {
+  const canAccessPatient = (patientId?: string): boolean => {
     if (!user) return false
     if (user.role === 'clinician' || user.role === 'admin') return true
-    if (user.role === 'patient') return user.id === patientUserId
+    if (user.role === 'patient') {
+      // مقایسه باید با Patient.id باشد، نه User.id
+      return user.patient_profile?.patient_id === patientId
+    }
     return false
   }
 

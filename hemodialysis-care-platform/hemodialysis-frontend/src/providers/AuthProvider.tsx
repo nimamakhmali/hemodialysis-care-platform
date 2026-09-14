@@ -3,22 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@features/auth/stores/auth.store'
-import type { UserRole } from '@appTypes/common.types'
-
-// ─── Route Config ─────────────────────────────────────────────────────────
-const PUBLIC_ROUTES = ['/login', '/']
-
-const ROLE_HOME_MAP: Record<UserRole, string> = {
-  patient: '/patient',
-  clinician: '/clinician',
-  admin: '/admin',
-}
-
-const ROLE_ALLOWED_PREFIXES: Record<UserRole, string[]> = {
-  patient: ['/patient'],
-  clinician: ['/clinician'],
-  admin: ['/admin', '/clinician'],
-}
+import { PUBLIC_ROUTES, ROLE_HOME_MAP, canAccessPath } from '@config/permissions'
 
 // ─── Page Loader ─────────────────────────────────────────────────────────
 function InitializingScreen() {
@@ -81,7 +66,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const { user, isAuthenticated, isInitialized, initialize } = useAuthStore()
   const initCalled = useRef(false)
 
-  // Initialize once on mount
   useEffect(() => {
     if (!initCalled.current) {
       initCalled.current = true
@@ -89,36 +73,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [initialize])
 
-  // Route guard
   useEffect(() => {
     if (!isInitialized) return
 
     const isPublicRoute = PUBLIC_ROUTES.includes(pathname)
 
-    // Not authenticated → redirect to login
     if (!isAuthenticated && !isPublicRoute) {
       router.replace('/login')
       return
     }
 
-    // Authenticated on public route → redirect to role home
     if (isAuthenticated && isPublicRoute && user) {
       router.replace(ROLE_HOME_MAP[user.role])
       return
     }
 
-    // Authenticated but wrong role path
     if (isAuthenticated && user && !isPublicRoute) {
-      const allowedPrefixes = ROLE_ALLOWED_PREFIXES[user.role]
-      const isAllowed = allowedPrefixes.some((prefix) => pathname.startsWith(prefix))
-
-      if (!isAllowed) {
+      if (!canAccessPath(user.role, pathname)) {
         router.replace(ROLE_HOME_MAP[user.role])
       }
     }
   }, [isAuthenticated, isInitialized, pathname, router, user])
 
-  // Show loader while initializing
   if (!isInitialized) {
     return <InitializingScreen />
   }

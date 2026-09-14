@@ -27,9 +27,10 @@ export function useLabHistory(patientId: string, params?: { page?: number; size?
     queryFn: () => labsService.getHistory(patientId, params),
     enabled: !!patientId,
     staleTime: 3 * 60 * 1000,
-    placeholderData: (prev: any) => prev,
+    placeholderData: (previousData) => previousData, // ← حذف `any`
   })
 }
+
 
 export function useLabPanelDetail(patientId: string, panelId: string) {
   return useQuery({

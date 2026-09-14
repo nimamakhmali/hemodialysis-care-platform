@@ -1,12 +1,16 @@
 import type { UserRole } from '@appTypes/common.types'
+import type { CurrentUserResponse } from '@appTypes/api.types'
 
-export interface AuthUser {
-  id: string
-  phone_number: string
-  full_name: string
-  role: UserRole
-  is_active: boolean
+export interface PatientProfileRef {
+  patient_id: string
+  medical_record_number: string
 }
+
+/**
+ * AuthUser دقیقاً هم‌شکل با پاسخ /auth/me است
+ * (تنها منبع حقیقت برای پروفایل کاربر جاری)
+ */
+export type AuthUser = CurrentUserResponse
 
 export interface LoginCredentials {
   phone_number: string

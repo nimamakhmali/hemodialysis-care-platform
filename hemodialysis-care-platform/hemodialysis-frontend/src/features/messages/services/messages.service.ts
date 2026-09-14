@@ -27,6 +27,13 @@ export const messagesService = {
     const res = await apiClient.get(
       API_ENDPOINTS.messages.unreadCount(patientId)
     );
-    return res.data?.data?.count ?? res.data?.count ?? 0;
+    // پوشش چند شکل احتمالی پاسخ تا زمان تأیید قطعی schema بک‌اند
+    return (
+      res.data?.data?.unread_count ??
+      res.data?.data?.count ??
+      res.data?.unread_count ??
+      res.data?.count ??
+      0
+    );
   },
 };
