@@ -21,7 +21,11 @@ from app.api.v1.endpoints import (
     education,
     dashboard_patient,
     dashboard_clinician,
+    admin_users,
+    admin_audit,
+    admin_system,
 )
+
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -49,3 +53,8 @@ api_router.include_router(education.router)
 # داشبوردها
 api_router.include_router(dashboard_patient.router)
 api_router.include_router(dashboard_clinician.router)
+
+# ادمین
+api_router.include_router(admin_users.router)
+api_router.include_router(admin_audit.router)
+api_router.include_router(admin_system.router)
