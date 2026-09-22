@@ -1,69 +1,50 @@
-"use client";
+'use client'
 
-import { useEffect, useRef, useState } from "react";
-import { useInView } from "motion/react";
+import { useEffect, useRef, useState } from 'react'
 
 interface AnimatedNumberProps {
-  value: number;
-  duration?: number;
-  decimals?: number;
-  className?: string;
-  prefix?: string;
-  suffix?: string;
+  value: number
+  duration?: number
+  decimals?: number
 }
 
 export function AnimatedNumber({
   value,
-  duration = 1200,
+  duration = 600,
   decimals = 0,
-  className,
-  prefix = "",
-  suffix = "",
 }: AnimatedNumberProps) {
-  const [displayValue, setDisplayValue] = useState(0);
-  const ref = useRef<HTMLSpanElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-50px" });
-  const startTimeRef = useRef<number | null>(null);
-  const rafRef = useRef<number>(0);
+  const [display, setDisplay] = useState(0)
+  const rafRef = useRef<number | null>(null)
+  const startRef = useRef<number | null>(null)
+  const startValueRef = useRef(0)
 
   useEffect(() => {
-    if (!isInView) return;
+    const startValue = startValueRef.current
+    const diff = value - startValue
 
-    const startValue = 0;
-    const endValue = value;
+    if (rafRef.current) cancelAnimationFrame(rafRef.current)
 
-    const animate = (timestamp: number): void => {
-      if (!startTimeRef.current) startTimeRef.current = timestamp;
+    const animate = (timestamp: number) => {
+      if (!startRef.current) startRef.current = timestamp
+      const elapsed = timestamp - startRef.current
+      const progress = Math.min(elapsed / duration, 1)
+      const eased = 1 - Math.pow(1 - progress, 3)
 
-      const elapsed = timestamp - startTimeRef.current;
-      const progress = Math.min(elapsed / duration, 1);
-
-      // Ease out cubic
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const current = startValue + (endValue - startValue) * eased;
-
-      setDisplayValue(current);
+      setDisplay(startValue + diff * eased)
 
       if (progress < 1) {
-        rafRef.current = requestAnimationFrame(animate);
+        rafRef.current = requestAnimationFrame(animate)
+      } else {
+        startValueRef.current = value
+        startRef.current = null
       }
-    };
+    }
 
-    rafRef.current = requestAnimationFrame(animate);
-
+    rafRef.current = requestAnimationFrame(animate)
     return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-  }, [isInView, value, duration]);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    }
+  }, [value, duration])
 
-  const formatted =
-    decimals > 0 ? displayValue.toFixed(decimals) : Math.round(displayValue).toString();
-
-  return (
-    <span ref={ref} className={className}>
-      {prefix}
-      {formatted}
-      {suffix}
-    </span>
-  );
+  return <span>{display.toFixed(decimals)}</span>
 }

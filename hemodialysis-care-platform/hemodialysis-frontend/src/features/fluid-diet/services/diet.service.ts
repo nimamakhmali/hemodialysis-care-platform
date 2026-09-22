@@ -1,39 +1,35 @@
-// src/features/fluid-diet/services/diet.service.ts
-import apiClient from "@/lib/api/client";
-import { API_ENDPOINTS } from "@/lib/api/endpoints";
-import type {
-  DietLog,
-  DietLogCreateRequest,
-  DietSummary,
-} from "../types/fluid-diet.types";
+import apiClient from '@/lib/api/client'
+import { API_ENDPOINTS } from '@/lib/api/endpoints'
+import type { ApiResponse, PaginatedApiResponse } from '@/types/api.types'
+import type { DietLog, UpsertDietLogRequest, DietSummaryResponse } from '../types/fluid-diet.types'
 
 export const dietService = {
-  log: async (
+  upsert: async (
     patientId: string,
-    data: DietLogCreateRequest
+    data: UpsertDietLogRequest
   ): Promise<DietLog> => {
-    const res = await apiClient.post(
+    const res = await apiClient.post<ApiResponse<DietLog>>(
       API_ENDPOINTS.diet.log(patientId),
       data
-    );
-    return res.data?.data ?? res.data;
+    )
+    return res.data.data
   },
 
   getHistory: async (
     patientId: string,
-    params?: { days?: number; page?: number; size?: number }
-  ): Promise<DietLog[]> => {
+    params?: { page?: number; size?: number }
+  ): Promise<PaginatedApiResponse<DietLog>> => {
     const res = await apiClient.get(
       API_ENDPOINTS.diet.history(patientId),
       { params }
-    );
-    return res.data?.data ?? res.data ?? [];
+    )
+    return res.data
   },
 
-  getSummary: async (patientId: string): Promise<DietSummary> => {
-    const res = await apiClient.get(
+  getSummary: async (patientId: string): Promise<DietSummaryResponse> => {
+    const res = await apiClient.get<ApiResponse<DietSummaryResponse>>(
       API_ENDPOINTS.diet.summary(patientId)
-    );
-    return res.data?.data ?? res.data;
+    )
+    return res.data.data
   },
-};
+}

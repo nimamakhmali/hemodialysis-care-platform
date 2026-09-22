@@ -1,48 +1,43 @@
-// src/features/lab-results/hooks/useLabResults.ts
+'use client'
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { labsService } from '../services/labs.service'
-import type { CreateLabPanelForm } from '../types/lab.types'
+import { QUERY_KEYS } from '@/lib/query/queryClient'
 import toast from 'react-hot-toast'
+import type { CreateLabPanelRequest } from '../types/lab.types'
 
-const KEYS = {
-  latest: (pid: string) => ['labs', pid, 'latest'],
-  history: (pid: string, params?: object) => ['labs', pid, 'history', params],
-  panel: (pid: string, panelId: string) => ['labs', pid, 'panel', panelId],
-  trend: (pid: string, code: string) => ['labs', pid, 'trend', code],
-  refs: () => ['labs', 'reference-ranges'],
+export function useLabPanels(
+  patientId: string,
+  params?: { page?: number; size?: number }
+) {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.labHistory(patientId), params],
+    queryFn: () => labsService.getPanels(patientId, params),
+    enabled: !!patientId,
+    staleTime: 3 * 60 * 1000,
+  })
 }
 
 export function useLatestLabs(patientId: string) {
   return useQuery({
-    queryKey: KEYS.latest(patientId),
-    queryFn: () => labsService.getLatestLabs(patientId),
+    queryKey: QUERY_KEYS.latestLabs(patientId),
+    queryFn: () => labsService.getLatest(patientId),
     enabled: !!patientId,
-    staleTime: 3 * 60 * 1000,
+    staleTime: 5 * 60 * 1000,
   })
 }
 
-export function useLabHistory(patientId: string, params?: { page?: number; size?: number; test_code?: string }) {
+export function useLabPanel(patientId: string, panelId: string) {
   return useQuery({
-    queryKey: KEYS.history(patientId, params),
-    queryFn: () => labsService.getHistory(patientId, params),
-    enabled: !!patientId,
-    staleTime: 3 * 60 * 1000,
-    placeholderData: (previousData) => previousData, // ← حذف `any`
-  })
-}
-
-
-export function useLabPanelDetail(patientId: string, panelId: string) {
-  return useQuery({
-    queryKey: KEYS.panel(patientId, panelId),
-    queryFn: () => labsService.getPanelDetail(patientId, panelId),
+    queryKey: [...QUERY_KEYS.labHistory(patientId), panelId],
+    queryFn: () => labsService.getPanel(patientId, panelId),
     enabled: !!patientId && !!panelId,
   })
 }
 
 export function useLabTrend(patientId: string, testCode: string) {
   return useQuery({
-    queryKey: KEYS.trend(patientId, testCode),
+    queryKey: QUERY_KEYS.labTrend(patientId, testCode),
     queryFn: () => labsService.getTrend(patientId, testCode),
     enabled: !!patientId && !!testCode,
     staleTime: 5 * 60 * 1000,
@@ -51,21 +46,26 @@ export function useLabTrend(patientId: string, testCode: string) {
 
 export function useReferenceRanges() {
   return useQuery({
-    queryKey: KEYS.refs(),
-    queryFn: () => labsService.getReferenceRanges(),
-    staleTime: 60 * 60 * 1000,
+    queryKey: [QUERY_KEYS.referenceRanges],
+    queryFn: labsService.getReferenceRanges,
+    staleTime: 60 * 60 * 1000, // 1 hour — داده ثابت
   })
 }
 
 export function useCreateLabPanel(patientId: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: CreateLabPanelForm) => labsService.createPanel(patientId, data),
+    mutationFn: (data: CreateLabPanelRequest) =>
+      labsService.createPanel(patientId, data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['labs', patientId] })
-      qc.invalidateQueries({ queryKey: ['patients', patientId] })
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.latestLabs(patientId) })
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.labHistory(patientId) })
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.patientDashboard(patientId) })
+      qc.invalidateQueries({ queryKey: [QUERY_KEYS.clinicianDashboard] })
       toast.success('نتایج آزمایش با موفقیت ثبت شد')
     },
-    onError: () => toast.error('خطا در ثبت آزمایش'),
+    onError: () => {
+      toast.error('خطا در ثبت نتایج آزمایش')
+    },
   })
 }

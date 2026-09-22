@@ -1,32 +1,16 @@
-"use client";
-
-import { motion } from "motion/react";
+import { Heart } from 'lucide-react'
 
 export function PageLoader() {
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
-      {/* Animated logo mark */}
-      <motion.div className="relative h-14 w-14">
-        <motion.div
-          className="absolute inset-0 rounded-2xl border-2 border-primary-200"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-        />
-        <motion.div
-          className="absolute inset-2 rounded-xl border-2 border-primary-400"
-          animate={{ rotate: -360 }}
-          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-        />
-        <div className="absolute inset-4 rounded-lg bg-gradient-to-br from-primary-400 to-cyan-400" />
-      </motion.div>
-
-      <motion.p
-        className="text-sm text-slate-500"
-        animate={{ opacity: [0.5, 1, 0.5] }}
-        transition={{ duration: 1.5, repeat: Infinity }}
-      >
-        در حال بارگذاری...
-      </motion.p>
+    <div className="flex min-h-screen items-center justify-center bg-[#F0F9FF]">
+      <div className="flex flex-col items-center gap-4">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#0EA5E9] to-[#06B6D4] shadow-lg shadow-[#0EA5E9]/20 animate-pulse">
+          <Heart className="h-8 w-8 text-white" />
+        </div>
+        <p className="text-sm font-medium text-[#64748B] animate-pulse">
+          در حال بارگذاری...
+        </p>
+      </div>
     </div>
-  );
+  )
 }

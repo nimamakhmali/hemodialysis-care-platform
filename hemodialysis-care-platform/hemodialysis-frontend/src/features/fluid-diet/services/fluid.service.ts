@@ -1,42 +1,28 @@
-// src/features/fluid-diet/services/fluid.service.ts
-import apiClient from "@/lib/api/client";
-import { API_ENDPOINTS } from "@/lib/api/endpoints";
-import type {
-  FluidLog,
-  FluidLogCreateRequest,
-  FluidHistory,
-} from "../types/fluid-diet.types";
+import apiClient from '@/lib/api/client'
+import { API_ENDPOINTS } from '@/lib/api/endpoints'
+import type { ApiResponse, PaginatedApiResponse } from '@/types/api.types'
+import type { FluidLog, UpsertFluidLogRequest } from '../types/fluid-diet.types'
 
 export const fluidService = {
-  log: async (
+  upsert: async (
     patientId: string,
-    data: FluidLogCreateRequest
+    data: UpsertFluidLogRequest
   ): Promise<FluidLog> => {
-    const res = await apiClient.post(
+    const res = await apiClient.post<ApiResponse<FluidLog>>(
       API_ENDPOINTS.fluid.log(patientId),
       data
-    );
-    return res.data?.data ?? res.data;
+    )
+    return res.data.data
   },
 
   getHistory: async (
     patientId: string,
-    params?: { days?: number; page?: number; size?: number }
-  ): Promise<FluidLog[]> => {
+    params?: { page?: number; size?: number }
+  ): Promise<PaginatedApiResponse<FluidLog>> => {
     const res = await apiClient.get(
       API_ENDPOINTS.fluid.history(patientId),
       { params }
-    );
-    return res.data?.data ?? res.data ?? [];
+    )
+    return res.data
   },
-
-  getToday: async (patientId: string): Promise<FluidLog | null> => {
-    const today = new Date().toISOString().split("T")[0];
-    const res = await apiClient.get(
-      API_ENDPOINTS.fluid.history(patientId),
-      { params: { date: today } }
-    );
-    const arr: FluidLog[] = res.data?.data ?? res.data ?? [];
-    return arr.find((l) => l.log_date === today) ?? null;
-  },
-};
+}

@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { motion } from 'framer-motion'
-import { cn } from '@lib/utils/cn'
+import { motion } from 'motion/react'
+import { cn } from '@/lib/utils/cn'
 
 export interface Tab {
   key: string
@@ -14,6 +14,8 @@ export interface Tab {
 
 interface TabsProps {
   tabs: Tab[]
+  // پشتیبانی از هر دو نوع prop برای سازگاری
+  activeTab?: string
   activeKey?: string
   onChange?: (key: string) => void
   variant?: 'line' | 'pill' | 'card'
@@ -24,6 +26,7 @@ interface TabsProps {
 
 export function Tabs({
   tabs,
+  activeTab,
   activeKey,
   onChange,
   variant = 'line',
@@ -31,12 +34,12 @@ export function Tabs({
   fullWidth,
   className,
 }: TabsProps) {
-  const [active, setActive] = useState(activeKey ?? tabs[0]?.key)
-
-  const current = activeKey ?? active
+  const initialKey = activeTab ?? activeKey ?? tabs[0]?.key
+  const [internalActive, setInternalActive] = useState(initialKey)
+  const current = activeTab ?? activeKey ?? internalActive
 
   const handleChange = (key: string) => {
-    setActive(key)
+    setInternalActive(key)
     onChange?.(key)
   }
 
@@ -50,8 +53,7 @@ export function Tabs({
     return (
       <div
         className={cn(
-          'flex items-center gap-1 p-1',
-          'bg-surface rounded-2xl border border-border-subtle',
+          'flex items-center gap-1 p-1 bg-[#F0F9FF] rounded-2xl border border-[#BAE6FD]/60',
           fullWidth && 'w-full',
           className
         )}
@@ -62,36 +64,33 @@ export function Tabs({
             onClick={() => !tab.disabled && handleChange(tab.key)}
             disabled={tab.disabled}
             className={cn(
-              'relative flex items-center rounded-xl font-medium',
-              'transition-all duration-200',
-              'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400/30',
+              'relative flex items-center rounded-xl font-medium transition-all duration-200',
+              'focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0EA5E9]/30',
               'disabled:opacity-40 disabled:cursor-not-allowed',
               sizeMap[size],
               fullWidth && 'flex-1 justify-center',
               current === tab.key
-                ? 'text-primary-700'
-                : 'text-text-muted hover:text-text-secondary'
+                ? 'text-[#0284C7]'
+                : 'text-[#475569] hover:text-[#0F172A]'
             )}
           >
             {current === tab.key && (
               <motion.div
                 layoutId="pill-bg"
-                className="absolute inset-0 bg-white rounded-xl shadow-soft border border-border-subtle"
+                className="absolute inset-0 bg-white rounded-xl shadow-sm border border-[#BAE6FD]/50"
                 transition={{ type: 'spring', duration: 0.4, bounce: 0.15 }}
               />
             )}
-            <span className="relative z-10 flex items-center gap-2">
-              {tab.icon && <span className="flex-shrink-0">{tab.icon}</span>}
+            <span className="relative z-10 flex items-center gap-1.5">
+              {tab.icon}
               {tab.label}
               {tab.badge !== undefined && (
                 <span
                   className={cn(
-                    'inline-flex items-center justify-center',
-                    'min-w-[18px] h-[18px] px-1 rounded-full',
-                    'text-[10px] font-bold',
+                    'inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold',
                     current === tab.key
-                      ? 'bg-primary-100 text-primary-700'
-                      : 'bg-border text-text-muted'
+                      ? 'bg-[#0EA5E9]/20 text-[#0284C7]'
+                      : 'bg-slate-200 text-slate-500'
                   )}
                 >
                   {tab.badge}
@@ -104,45 +103,11 @@ export function Tabs({
     )
   }
 
-  if (variant === 'card') {
-    return (
-      <div className={cn('flex items-center gap-2', className)}>
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => !tab.disabled && handleChange(tab.key)}
-            disabled={tab.disabled}
-            className={cn(
-              'flex items-center rounded-xl font-medium',
-              'border transition-all duration-200',
-              'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400/30',
-              'disabled:opacity-40 disabled:cursor-not-allowed',
-              sizeMap[size],
-              fullWidth && 'flex-1 justify-center',
-              current === tab.key
-                ? 'bg-white border-border-subtle shadow-soft text-primary-700'
-                : 'bg-transparent border-transparent text-text-muted hover:bg-surface'
-            )}
-          >
-            {tab.icon && <span className="flex-shrink-0">{tab.icon}</span>}
-            {tab.label}
-            {tab.badge !== undefined && (
-              <span className="bg-danger text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                {tab.badge}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-    )
-  }
-
   // Default: line
   return (
     <div
       className={cn(
-        'relative flex items-center gap-0',
-        'border-b border-border-subtle',
+        'relative flex items-center gap-0 border-b border-[#BAE6FD]/50',
         fullWidth && 'w-full',
         className
       )}
@@ -153,43 +118,32 @@ export function Tabs({
           onClick={() => !tab.disabled && handleChange(tab.key)}
           disabled={tab.disabled}
           className={cn(
-            'relative flex items-center font-medium',
+            'relative flex items-center font-medium -mb-px pb-px',
             'transition-all duration-200',
-            '-mb-px pb-px',
-            'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400/30 focus-visible:ring-inset',
-            'disabled:opacity-40 disabled:cursor-not-allowed',
+            'focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed',
             sizeMap[size],
             fullWidth && 'flex-1 justify-center',
             current === tab.key
-              ? 'text-primary-600'
-              : 'text-text-muted hover:text-text-secondary'
+              ? 'text-[#0284C7]'
+              : 'text-[#64748B] hover:text-[#0F172A]'
           )}
         >
-          {tab.icon && <span className="flex-shrink-0">{tab.icon}</span>}
+          {tab.icon && <span className="shrink-0">{tab.icon}</span>}
           {tab.label}
           {tab.badge !== undefined && (
             <span
               className={cn(
-                'inline-flex items-center justify-center',
-                'min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold',
-                current === tab.key
-                  ? 'bg-danger text-white'
-                  : 'bg-border text-text-muted'
+                'inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold',
+                current === tab.key ? 'bg-red-500 text-white' : 'bg-slate-200 text-slate-500'
               )}
             >
               {tab.badge}
             </span>
           )}
-
-          {/* Active Line */}
           {current === tab.key && (
             <motion.div
               layoutId="tab-line"
-              className={cn(
-                'absolute bottom-0 right-0 left-0 h-0.5',
-                'bg-gradient-to-l from-primary-500 to-cyan-500',
-                'rounded-t-full'
-              )}
+              className="absolute bottom-0 right-0 left-0 h-0.5 rounded-t-full bg-gradient-to-l from-[#0EA5E9] to-[#06B6D4]"
               transition={{ type: 'spring', duration: 0.4, bounce: 0.15 }}
             />
           )}

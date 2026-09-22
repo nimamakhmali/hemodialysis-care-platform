@@ -1,62 +1,57 @@
-// src/features/dialysis-sessions/services/sessions.service.ts
-
 import apiClient from '@/lib/api/client'
 import { API_ENDPOINTS } from '@/lib/api/endpoints'
+import type { ApiResponse, PaginatedApiResponse } from '@/types/api.types'
 import type {
+  SessionResponse,
   SessionFormData,
-  BPTrendPoint,
+  WeightTrendItem,
+  BPTrendItem,
 } from '../types/session.types'
 
 export const sessionsService = {
-  async getSessions(
+  getList: async (
     patientId: string,
     params?: { page?: number; size?: number }
-  ) {
-    const { data } = await apiClient.get(
-            API_ENDPOINTS.sessions.list(patientId),
+  ): Promise<PaginatedApiResponse<SessionResponse>> => {
+    const res = await apiClient.get(
+      API_ENDPOINTS.sessions.list(patientId),
       { params }
     )
-    return data
+    return res.data
   },
 
-  async getSession(patientId: string, sessionId: string) {
-    const { data } = await apiClient.get(
-            API_ENDPOINTS.sessions.detail(patientId, sessionId)
-    )
-    return data
-  },
-
-  async createSession(patientId: string, payload: SessionFormData) {
-    const { data } = await apiClient.post(
-            API_ENDPOINTS.sessions.list(patientId),
-      payload
-    )
-    return data
-  },
-
-  async updateSession(
+  create: async (
     patientId: string,
-    sessionId: string,
-    payload: Partial<SessionFormData>
-  ) {
-    const { data } = await apiClient.put(
-            API_ENDPOINTS.sessions.detail(patientId, sessionId),
-      payload
+    data: SessionFormData
+  ): Promise<SessionResponse> => {
+    const res = await apiClient.post<ApiResponse<SessionResponse>>(
+      API_ENDPOINTS.sessions.create(patientId),
+      data
     )
-    return data
+    return res.data.data
   },
 
-  async getWeightTrend(patientId: string) {
-    const { data } = await apiClient.get(
-            API_ENDPOINTS.sessions.weightTrend(patientId)
+  getDetail: async (
+    patientId: string,
+    sessionId: string
+  ): Promise<SessionResponse> => {
+    const res = await apiClient.get<ApiResponse<SessionResponse>>(
+      API_ENDPOINTS.sessions.detail(patientId, sessionId)
     )
-    return data
+    return res.data.data
   },
 
-  async getBPTrend(patientId: string) {
-    const { data } = await apiClient.get(
-            API_ENDPOINTS.sessions.bpTrend(patientId)
+  getWeightTrend: async (patientId: string): Promise<WeightTrendItem[]> => {
+    const res = await apiClient.get<ApiResponse<WeightTrendItem[]>>(
+      API_ENDPOINTS.sessions.weightTrend(patientId)
     )
-    return data
+    return res.data.data ?? []
+  },
+
+  getBPTrend: async (patientId: string): Promise<BPTrendItem[]> => {
+    const res = await apiClient.get<ApiResponse<BPTrendItem[]>>(
+      API_ENDPOINTS.sessions.bpTrend(patientId)
+    )
+    return res.data.data ?? []
   },
 }

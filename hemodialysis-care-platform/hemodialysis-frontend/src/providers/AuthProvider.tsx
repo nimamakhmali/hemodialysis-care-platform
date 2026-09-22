@@ -59,45 +59,17 @@ function InitializingScreen() {
 interface AuthProviderProps {
   children: React.ReactNode
 }
+'use client'
 
-export function AuthProvider({ children }: AuthProviderProps) {
-  const router = useRouter()
-  const pathname = usePathname()
-  const { user, isAuthenticated, isInitialized, initialize } = useAuthStore()
-  const initCalled = useRef(false)
-
-  useEffect(() => {
-    if (!initCalled.current) {
-      initCalled.current = true
-      initialize()
-    }
-  }, [initialize])
+/**
+ * Session restoration on app startup
+ */
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const restoreSession = useAuthStore((s) => s.restoreSession)
 
   useEffect(() => {
-    if (!isInitialized) return
-
-    const isPublicRoute = PUBLIC_ROUTES.includes(pathname)
-
-    if (!isAuthenticated && !isPublicRoute) {
-      router.replace('/login')
-      return
-    }
-
-    if (isAuthenticated && isPublicRoute && user) {
-      router.replace(ROLE_HOME_MAP[user.role])
-      return
-    }
-
-    if (isAuthenticated && user && !isPublicRoute) {
-      if (!canAccessPath(user.role, pathname)) {
-        router.replace(ROLE_HOME_MAP[user.role])
-      }
-    }
-  }, [isAuthenticated, isInitialized, pathname, router, user])
-
-  if (!isInitialized) {
-    return <InitializingScreen />
-  }
+    restoreSession()
+  }, [restoreSession])
 
   return <>{children}</>
 }

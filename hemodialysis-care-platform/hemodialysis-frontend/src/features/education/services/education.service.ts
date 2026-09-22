@@ -1,57 +1,56 @@
-// src/features/education/services/education.service.ts
-import apiClient from "@/lib/api/client";
-import { API_ENDPOINTS } from "@/lib/api/endpoints";
-import type {
-  EducationContent,
-  EducationCreateRequest,
-  EducationUpdateRequest,
-  EducationFilters,
-} from "../types/education.types";
+import apiClient from '@/lib/api/client'
+import { API_ENDPOINTS } from '@/lib/api/endpoints'
+import type { ApiResponse, PaginatedApiResponse, EducationContentItem } from '@/types/api.types'
 
 export const educationService = {
-  getAll: async (filters?: EducationFilters): Promise<EducationContent[]> => {
-    const res = await apiClient.get(API_ENDPOINTS.education.list, {
-      params: filters,
-    });
-    return res.data?.data ?? res.data ?? [];
+  getAll: async (params?: {
+    page?: number
+    size?: number
+    search?: string
+  }): Promise<PaginatedApiResponse<EducationContentItem>> => {
+    const res = await apiClient.get(API_ENDPOINTS.education.list, { params })
+    return res.data
   },
 
-  getByTopicCode: async (topicCode: string): Promise<EducationContent> => {
-    const res = await apiClient.get(
+  getByTopic: async (topicCode: string): Promise<EducationContentItem> => {
+    const res = await apiClient.get<ApiResponse<EducationContentItem>>(
       API_ENDPOINTS.education.detail(topicCode)
-    );
-    return res.data?.data ?? res.data;
+    )
+    return res.data.data
   },
 
-  getRelevant: async (patientId: string): Promise<EducationContent[]> => {
-    const res = await apiClient.get(
+  getRelevant: async (patientId: string): Promise<EducationContentItem[]> => {
+    const res = await apiClient.get<ApiResponse<EducationContentItem[]>>(
       API_ENDPOINTS.education.relevant(patientId)
-    );
-    return res.data?.data ?? res.data ?? [];
+    )
+    return res.data.data ?? []
   },
 
-  search: async (query: string): Promise<EducationContent[]> => {
-    const res = await apiClient.get("/education/search/", {
-      params: { q: query },
-    });
-    return res.data?.data ?? res.data ?? [];
+  search: async (query: string): Promise<EducationContentItem[]> => {
+    const res = await apiClient.get<ApiResponse<EducationContentItem[]>>(
+      `${API_ENDPOINTS.education.list}search`,
+      { params: { q: query } }
+    )
+    return res.data.data ?? []
   },
 
-  create: async (
-    data: EducationCreateRequest
-  ): Promise<EducationContent> => {
-    const res = await apiClient.post(API_ENDPOINTS.education.create, data);
-    return res.data?.data ?? res.data;
+  // Admin only
+  create: async (data: Partial<EducationContentItem>): Promise<EducationContentItem> => {
+    const res = await apiClient.post<ApiResponse<EducationContentItem>>(
+      API_ENDPOINTS.education.create,
+      data
+    )
+    return res.data.data
   },
 
   update: async (
     id: string,
-    data: EducationUpdateRequest
-  ): Promise<EducationContent> => {
-    const res = await apiClient.put(
+    data: Partial<EducationContentItem>
+  ): Promise<EducationContentItem> => {
+    const res = await apiClient.put<ApiResponse<EducationContentItem>>(
       API_ENDPOINTS.education.update(id),
       data
-    );
-    return res.data?.data ?? res.data;
+    )
+    return res.data.data
   },
-};
+}

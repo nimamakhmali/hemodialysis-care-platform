@@ -1,24 +1,16 @@
 'use client'
 
-import { useAuth } from './useAuth'
-
-interface UseRequirePatientIdResult {
-  patientId: string | null
-  isReady: boolean
-  hasProfile: boolean
-}
+import { useAuthStore } from '../stores/auth.store'
 
 /**
- * Guard مشترک برای تمام صفحات بیمار.
- * منبع صحیح patientId را از پروفایل اعتبارسنجی‌شده‌ی سرور (/auth/me) می‌گیرد
- * — هرگز از User.id استفاده نمی‌کند.
+ * برای صفحات بیمار — patient_id را از پروفایل کاربر برمی‌گرداند
+ * توجه: user.id !== patient_profile.patient_id
  */
-export function useRequirePatientId(): UseRequirePatientIdResult {
-  const { patientId, isInitialized, isAuthenticated } = useAuth()
+export function useRequirePatientId() {
+  const user = useAuthStore((s) => s.user)
 
-  return {
-    patientId,
-    isReady: isInitialized && isAuthenticated,
-    hasProfile: !!patientId,
-  }
+  const patientId = user?.patient_profile?.patient_id ?? ''
+  const isReady = !!patientId
+
+  return { patientId, isReady, user }
 }

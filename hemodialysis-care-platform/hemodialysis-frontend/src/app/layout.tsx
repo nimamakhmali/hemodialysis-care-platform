@@ -1,33 +1,43 @@
-import type { Metadata, Viewport } from 'next'
-import { QueryProvider } from '@providers/QueryProvider'
-import { AuthProvider } from '@providers/AuthProvider'
-import { ToastProvider } from '@providers/ToastProvider'
-import '@/styles/fonts.css'
+import type { Metadata } from 'next'
+import { Toaster } from 'react-hot-toast'
+import { QueryProvider } from '@/providers/QueryProvider'
+import { AuthProvider } from '@/providers/AuthProvider'
 import '@/styles/globals.css'
-import { Geist } from "next/font/google";
-import { cn } from "@/lib/utils";
-
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
-  title: { default: 'سامانه پایش دیالیز', template: '%s | سامانه پایش دیالیز' },
-  description: 'سامانه جامع مانیتورینگ، آموزش و پایش بیماران همودیالیز',
-  robots: 'noindex, nofollow',
+  title: 'سامانه دیالیز | پایش هوشمند بیماران',
+  description: 'سامانه مانیتورینگ و آموزش بیماران همودیالیز',
 }
 
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  themeColor: '#0EA5E9',
-}
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <html lang="fa" dir="rtl" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
-      <body>
+    <html lang="fa" dir="rtl">
+      <body className="font-sans antialiased">
         <QueryProvider>
           <AuthProvider>
-            <ToastProvider>{children}</ToastProvider>
+            {children}
+            <Toaster
+              position="top-center"
+              toastOptions={{
+                duration: 4000,
+                style: {
+                  fontFamily: 'Vazirmatn, sans-serif',
+                  direction: 'rtl',
+                  borderRadius: '12px',
+                  fontSize: '13px',
+                },
+                success: {
+                  iconTheme: { primary: '#22C55E', secondary: '#fff' },
+                },
+                error: {
+                  iconTheme: { primary: '#EF4444', secondary: '#fff' },
+                },
+              }}
+            />
           </AuthProvider>
         </QueryProvider>
       </body>

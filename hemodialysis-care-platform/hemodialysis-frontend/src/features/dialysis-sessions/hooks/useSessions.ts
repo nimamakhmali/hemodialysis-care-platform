@@ -12,7 +12,7 @@ export function useSessions(
 ) {
   return useQuery({
     queryKey: [...QUERY_KEYS.sessions(patientId), params],
-    queryFn: () => sessionsService.getSessions(patientId, params),
+    queryFn: () => sessionsService.getList(patientId, params),
     enabled: !!patientId,
     staleTime: 2 * 60 * 1000,
   })
@@ -21,42 +21,8 @@ export function useSessions(
 export function useSession(patientId: string, sessionId: string) {
   return useQuery({
     queryKey: QUERY_KEYS.session(patientId, sessionId),
-    queryFn: () => sessionsService.getSession(patientId, sessionId),
+    queryFn: () => sessionsService.getDetail(patientId, sessionId),
     enabled: !!patientId && !!sessionId,
-  })
-}
-
-export function useCreateSession(patientId: string) {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (data: SessionFormData) =>
-      sessionsService.createSession(patientId, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: QUERY_KEYS.sessions(patientId) })
-      qc.invalidateQueries({ queryKey: QUERY_KEYS.patient(patientId) })
-      qc.invalidateQueries({ queryKey: QUERY_KEYS.patientDashboard(patientId) })
-      qc.invalidateQueries({ queryKey: [QUERY_KEYS.clinicianDashboard] })
-      toast.success('جلسه دیالیز با موفقیت ثبت شد')
-    },
-    onError: () => {
-      toast.error('خطا در ثبت جلسه دیالیز')
-    },
-  })
-}
-
-export function useUpdateSession(patientId: string, sessionId: string) {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (data: Partial<SessionFormData>) =>
-      sessionsService.updateSession(patientId, sessionId, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: QUERY_KEYS.session(patientId, sessionId) })
-      qc.invalidateQueries({ queryKey: QUERY_KEYS.sessions(patientId) })
-      qc.invalidateQueries({ queryKey: QUERY_KEYS.weightTrend(patientId) })
-      qc.invalidateQueries({ queryKey: QUERY_KEYS.bpTrend(patientId) })
-      toast.success('جلسه با موفقیت ویرایش شد')
-    },
-    onError: () => toast.error('خطا در ویرایش جلسه'),
   })
 }
 
@@ -75,5 +41,30 @@ export function useBPTrend(patientId: string) {
     queryFn: () => sessionsService.getBPTrend(patientId),
     enabled: !!patientId,
     staleTime: 5 * 60 * 1000,
+  })
+}
+
+export function useCreateSession(patientId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: SessionFormData) =>
+      sessionsService.create(patientId, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.sessions(patientId) })
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.weightTrend(patientId) })
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.bpTrend(patientId) })
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.patientDashboard(patientId) })
+      qc.invalidateQueries({ queryKey: [QUERY_KEYS.clinicianDashboard] })
+      toast.success('جلسه دیالیز با موفقیت ثبت شد')
+    },
+    onError: (err: unknown) => {
+      const status = (err as { response?: { status?: number } })?.response
+        ?.status
+      if (status === 409) {
+        toast.error('جلسه‌ای برای این تاریخ قبلاً ثبت شده است')
+      } else {
+        toast.error('خطا در ثبت جلسه')
+      }
+    },
   })
 }

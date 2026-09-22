@@ -1,22 +1,11 @@
 'use client'
 
-import { useRequirePatientId } from '@/features/auth/hooks/useRequirePatientId'
-import { MessagesPageView } from '@/features/messages/components/MessagesPageView'
 import { PageLoader } from '@/components/feedback/PageLoader'
-import { EmptyState } from '@/components/ui/EmptyState'
+import { MessagesPageView } from '@/features/messages/components/MessagesPageView'
+import { useRequirePatientId } from '@/features/auth/hooks/useRequirePatientId'
 
-export default function MessagesPage() {
-  const { patientId, isReady, hasProfile } = useRequirePatientId()
-
+export default function PatientMessagesPage() {
+  const { patientId, isReady } = useRequirePatientId()
   if (!isReady) return <PageLoader />
-  if (!hasProfile || !patientId) {
-    return (
-      <EmptyState
-        title="پرونده بیمار یافت نشد"
-        description="حساب کاربری شما به هیچ پرونده بیمار متصل نیست."
-      />
-    )
-  }
-
   return <MessagesPageView patientId={patientId} />
 }

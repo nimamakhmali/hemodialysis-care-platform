@@ -22,6 +22,7 @@ import {
 import { cn } from '@lib/utils/cn'
 import { LoginForm } from '@features/auth/components/LoginForm'
 
+
 // ─── Static particle config (deterministic — no hydration mismatch) ───────
 const PARTICLES = [
   { left: '6%', size: 5, duration: 15, delay: 0 },
@@ -474,350 +475,174 @@ function RightPanelECG() {
 }
 
 // ─── Main Page ──────────────────────────────────────────────────────────────
+'use client'
+
+import { useAuthStore } from '@/features/auth/stores/auth.store'
+
 export function LoginPageClient() {
-  // نور تعاملی روی پنل چپ (Spotlight)
-  const spotX = useMotionValue(50)
-  const spotY = useMotionValue(35)
-  const springSpotX = useSpring(spotX, { stiffness: 60, damping: 22 })
-  const springSpotY = useSpring(spotY, { stiffness: 60, damping: 22 })
-  const spotlightBg = useMotionTemplate`radial-gradient(650px circle at ${springSpotX}% ${springSpotY}%, rgba(165,243,252,0.16), transparent 68%)`
+  const router = useRouter()
+  const { login } = useAuthStore()
 
-  // پارالاکس عمقی برای اوربها و دایره‌های تزئینی
-  const parallaxRawX = useMotionValue(0)
-  const parallaxRawY = useMotionValue(0)
-  const parallaxX = useSpring(parallaxRawX, { stiffness: 50, damping: 20 })
-  const parallaxY = useSpring(parallaxRawY, { stiffness: 50, damping: 20 })
+  const [phone, setPhone] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPass, setShowPass] = useState(false)
+  const [error, setError] = useState('')
+  const [isPending, setIsPending] = useState(false)
 
-  function handlePanelMouseMove(e: React.MouseEvent<HTMLDivElement>) {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const px = (e.clientX - rect.left) / rect.width
-    const py = (e.clientY - rect.top) / rect.height
-    spotX.set(px * 100)
-    spotY.set(py * 100)
-    parallaxRawX.set((px - 0.5) * 40)
-    parallaxRawY.set((py - 0.5) * 40)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!phone.trim() || !password) return
+
+    setError('')
+    setIsPending(true)
+
+    try {
+      await login({ phone_number: phone.trim(), password })
+
+      const user = useAuthStore.getState().user
+      if (user?.role === 'admin') router.replace('/admin')
+      else if (user?.role === 'clinician') router.replace('/clinician')
+      else router.replace('/patient')
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status
+      if (status === 401) {
+        setError('شماره موبایل یا رمز عبور اشتباه است')
+      } else if (status === 422) {
+        setError('فرمت شماره موبایل صحیح نیست')
+      } else {
+        setError('خطا در اتصال به سرور. لطفاً دوباره تلاش کنید.')
+      }
+    } finally {
+      setIsPending(false)
+    }
   }
 
   return (
-    <div className={cn('min-h-screen flex items-stretch', 'bg-gradient-main')}>
-      {/* ════════════════════════════════════
-          LEFT PANEL — Info & Branding
-      ════════════════════════════════════ */}
+    <div
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{
+        background:
+          'linear-gradient(135deg, #F0F9FF 0%, #ECFEFF 50%, #FFFFFF 100%)',
+      }}
+    >
+      {/* Glow */}
       <div
-        onMouseMove={handlePanelMouseMove}
-        className={cn(
-          'hidden lg:flex lg:w-[55%] xl:w-[58%]',
-          'flex-col justify-between',
-          'relative overflow-hidden p-10 xl:p-14'
-        )}
+        className="fixed inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(circle at 70% 20%, rgba(14,165,233,0.12), transparent 40%)',
+        }}
+      />
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="relative w-full max-w-sm"
       >
-        {/* Background */}
-        <div className="absolute inset-0 bg-gradient-hero" />
-        {/* تیره‌تر برای کنتراست بهتر متن */}
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-950/55 via-slate-900/25 to-slate-950/50" />
-        <div className="absolute inset-0 bg-grid-pattern opacity-10" />
-        <GrainOverlay />
-
-        <AuroraMesh />
-        <FloatingParticles />
-
-        {/* Interactive cursor spotlight */}
-        <motion.div className="absolute inset-0 pointer-events-none" style={{ background: spotlightBg }} />
-
-        {/* Decorative circles — با چرخش آروم و پارالاکس */}
-        <div className="absolute top-0 left-0 right-0 bottom-0 overflow-hidden pointer-events-none">
-          <motion.div
-            className="absolute -top-32 -right-32 w-96 h-96 rounded-full border border-white/10"
-            style={{ x: useTransform(parallaxX, (v) => v * 0.4), y: useTransform(parallaxY, (v) => v * 0.4) }}
-            animate={{ rotate: 360 }}
-            transition={{ duration: 90, repeat: Infinity, ease: 'linear' }}
-          />
-          <motion.div
-            className="absolute -bottom-24 -left-24 w-80 h-80 rounded-full border border-white/8"
-            style={{ x: useTransform(parallaxX, (v) => v * -0.3), y: useTransform(parallaxY, (v) => v * -0.3) }}
-            animate={{ rotate: -360 }}
-            transition={{ duration: 110, repeat: Infinity, ease: 'linear' }}
-          />
-          <motion.div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full border border-white/5"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 140, repeat: Infinity, ease: 'linear' }}
-          />
-        </div>
-
-        {/* Floating Orbs — با عمق پارالاکس */}
-        <FloatingOrb size={300} color="rgba(255,255,255,0.08)" position={{ top: '-10%', right: '-5%' }} delay={0} parallaxX={parallaxX} parallaxY={parallaxY} depth={0.5} />
-        <FloatingOrb size={200} color="rgba(20,184,166,0.2)" position={{ bottom: '20%', left: '-5%' }} delay={1.5} parallaxX={parallaxX} parallaxY={parallaxY} depth={0.9} />
-        <FloatingOrb size={150} color="rgba(56,189,248,0.15)" position={{ top: '40%', right: '10%' }} delay={3} parallaxX={parallaxX} parallaxY={parallaxY} depth={1.2} />
-
-        <div className="relative z-10 flex flex-col h-full gap-8">
+        {/* Card */}
+        <div
+          className="rounded-3xl border border-[#BAE6FD]/60 bg-white/90 p-8 shadow-xl"
+          style={{
+            boxShadow:
+              '0 8px 40px rgba(14, 165, 233, 0.10), 0 2px 8px rgba(0,0,0,0.04)',
+          }}
+        >
           {/* Logo */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="flex items-center gap-4"
-          >
-            <motion.div
-              whileHover={{ scale: 1.06 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 18 }}
-              className={cn(
-                'w-[70px] h-[70px] rounded-2xl',
-                'flex items-center justify-center',
-                'bg-white/20 border border-white/30',
-                'backdrop-blur-sm shadow-xl',
-                'relative overflow-hidden'
-              )}
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
-              <Heart className="h-9 w-9 text-white relative z-10" strokeWidth={1.5} />
-              {/* Lub-dub heartbeat glow — ریتم واقعی ضربان قلب */}
+          <div className="flex flex-col items-center mb-8">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#0EA5E9] to-[#06B6D4] shadow-lg shadow-[#0EA5E9]/25 mb-4">
+              <Heart className="h-8 w-8 text-white" strokeWidth={2.5} />
+            </div>
+            <h1 className="text-xl font-bold text-[#0F172A]">سامانه دیالیز</h1>
+            <p className="text-sm text-[#64748B] mt-1">
+              پایش هوشمند بیماران همودیالیز
+            </p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            {/* Error */}
+            {error && (
               <motion.div
-                className="absolute inset-0 rounded-2xl bg-white/25"
-                animate={{ scale: [1, 1.35, 1, 1.28, 1], opacity: [0.55, 0, 0.5, 0, 0.55] }}
-                transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut', times: [0, 0.15, 0.3, 0.45, 1] }}
-              />
-            </motion.div>
-            <div>
-              <h1 className="text-2xl font-black text-white leading-tight">سامانه پایش دیالیز</h1>
-              <p className="text-white/80 text-sm mt-1">مدیریت هوشمند روند درمان</p>
-            </div>
-          </motion.div>
-
-          {/* Hero Text */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.15 }}
-            className="space-y-5"
-          >
-            <div className="relative inline-flex items-center gap-2 bg-white/15 border border-white/20 rounded-full px-4 py-1.5 backdrop-blur-sm">
-              <Zap className="h-4 w-4 text-yellow-300" />
-              <span className="text-white/95 text-xs font-medium">هوش مصنوعی در خدمت سلامت</span>
-              {/* Sparkle accent */}
-              <motion.span
-                className="absolute -top-1.5 -left-1.5 text-cyan-200"
-                animate={{ opacity: [0, 1, 0], scale: [0.6, 1, 0.6], rotate: [0, 25, 0] }}
-                transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3"
               >
-                <Sparkles className="h-3.5 w-3.5" />
-              </motion.span>
-            </div>
-
-            <h2 className="text-4xl xl:text-5xl font-black text-white leading-tight">
-              <TextReveal text="پایش مستمر" delay={0.35} />
-              <br />
-              <motion.span
-                className="text-transparent bg-clip-text bg-[length:200%_auto]"
-                style={{
-                  backgroundImage:
-                    'linear-gradient(90deg, #ffffff 0%, #a5f3fc 30%, #67e8f9 50%, #a5f3fc 70%, #ffffff 100%)',
-                }}
-                initial={{ opacity: 0, y: 14, filter: 'blur(10px)' }}
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                  filter: 'blur(0px)',
-                  backgroundPosition: ['0% 50%', '200% 50%'],
-                }}
-                transition={{
-                  opacity: { duration: 0.65, delay: 0.7 },
-                  y: { duration: 0.65, delay: 0.7 },
-                  filter: { duration: 0.65, delay: 0.7 },
-                  backgroundPosition: { duration: 6, repeat: Infinity, ease: 'linear', delay: 1.2 },
-                }}
-              >
-                بیماران دیالیزی
-              </motion.span>
-            </h2>
-
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.55 }}
-              className="text-white/85 text-base leading-relaxed max-w-md"
-            >
-              سامانه‌ای یکپارچه برای مانیتورینگ، آموزش و مدیریت هوشمند روند درمان بیماران همودیالیز
-            </motion.p>
-
-            <PulseDivider />
-            <LiveStatusBadge />
-          </motion.div>
-
-          {/* Features */}
-          <div className="relative space-y-6 ps-1">
-            <div className="absolute start-[27px] top-8 bottom-8 w-px bg-gradient-to-b from-cyan-200/50 via-white/20 to-transparent" />
-            <TravelingPulse />
-            <FeatureItem
-              icon={<Activity className="h-8 w-8" />}
-              title="مانیتورینگ مستمر"
-              description="پایش لحظه‌ای وزن، فشار خون و نتایج آزمایش‌ها با تحلیل هوشمند"
-              color="text-cyan-200"
-              delay={0.3}
-            />
-            <FeatureItem
-              icon={<Bell className="h-8 w-8" />}
-              title="هشدار به موقع"
-              description="شناسایی خودکار ناهنجاری‌ها و ارسال هشدار سه‌سطحی برای تیم درمان"
-              color="text-amber-200"
-              delay={0.4}
-            />
-            <FeatureItem
-              icon={<BookOpen className="h-8 w-8" />}
-              title="آموزش شخصی‌سازی‌شده"
-              description="محتوای آموزشی متناسب با وضعیت هر بیمار، تأییدشده توسط پزشک"
-              color="text-teal-200"
-              delay={0.5}
-            />
-          </div>
-
-          {/* Stats */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-            className={cn(
-              'flex items-center justify-around',
-              'bg-white/10 border border-white/15',
-              'rounded-2xl px-6 py-6 backdrop-blur-md',
-              'shadow-[0_8px_30px_rgba(0,0,0,0.15)]',
-              'relative overflow-hidden'
+                <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
+                <p className="text-sm text-red-700">{error}</p>
+              </motion.div>
             )}
-          >
-            {/* شاین ملایم روی نوار آمار */}
-            <motion.div
-              className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12"
-              animate={{ x: ['-120%', '220%'] }}
-              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', repeatDelay: 3 }}
-            />
-            <StatItem value="۱۰۰۰+" countTo={1000} suffix="+" label="بیمار تحت پایش" delay={0.7} />
-            <div className="w-px h-10 bg-white/20" />
-            <StatItem value="3 سطح" label="هشدار بالینی" delay={0.8} />
-            <div className="w-px h-10 bg-white/20" />
-            <StatItem value="۲۴/۷" label="مانیتورینگ" delay={0.9} />
-          </motion.div>
-        </div>
-      </div>
 
-      {/* ════════════════════════════════════
-          RIGHT PANEL — Login Form
-      ════════════════════════════════════ */}
-      <div
-        className={cn(
-          'flex-1 lg:w-[45%] xl:w-[42%]',
-          'flex flex-col items-center justify-center',
-          'p-6 sm:p-8 lg:p-12 xl:p-16',
-          'relative overflow-hidden'
-        )}
-      >
-        <div className="absolute inset-0 glow-center opacity-50 pointer-events-none" />
+            {/* Phone */}
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-[#374151]">
+                شماره موبایل
+              </label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="09XXXXXXXXX"
+                dir="ltr"
+                autoComplete="tel"
+                className="w-full rounded-xl border border-slate-200 bg-[#F8FAFC] px-4 py-3 text-sm text-[#0F172A] placeholder:text-[#94A3B8] focus:border-[#0EA5E9] focus:outline-none focus:ring-3 focus:ring-[#0EA5E9]/15 transition-all"
+                required
+              />
+            </div>
 
-        {/* نوار ضربان زنده — پررنگ، آبی، با حرکت پیوسته مثل مانیتور بیمارستانی */}
-        <RightPanelECG />
-
-        {/* واترمارک بزرگ Activity در پس‌زمینه — چرخش خیلی آروم */}
-        <motion.div
-          className="absolute -bottom-16 -left-16 text-primary-500/[0.04] pointer-events-none"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 180, repeat: Infinity, ease: 'linear' }}
-        >
-          <Activity size={280} strokeWidth={1} />
-        </motion.div>
-
-        {/* Mobile Logo */}
-        <motion.div
-          initial={{ opacity: 0, y: -16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="lg:hidden flex items-center gap-3 mb-10"
-        >
-          <div className="w-14 h-14 rounded-2xl bg-gradient-azure flex items-center justify-center shadow-glow-sm">
-            <Heart className="h-7 w-7 text-white" strokeWidth={1.5} />
-          </div>
-          <div>
-            <h1 className="text-base font-black text-text-primary">سامانه پایش دیالیز</h1>
-            <p className="text-xs text-text-muted">مدیریت هوشمند روند درمان</p>
-          </div>
-        </motion.div>
-
-        {/* Form Card — با تیلت سه‌بعدی، حاشیه‌ی گرادیانت چرخان و انعکاس شیشه‌ای */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.96 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="w-full max-w-md"
-        >
-          <TiltCard>
-            <div
-              className="absolute -inset-4 rounded-3xl opacity-30"
-              style={{ background: 'radial-gradient(ellipse at center, rgba(14,165,233,0.15) 0%, transparent 70%)' }}
-            />
-
-            <AnimatedGradientBorder>
-              <div
-                className={cn('relative bg-white rounded-3xl', 'shadow-xl p-8 sm:p-10', 'overflow-hidden')}
-                style={{ transformStyle: 'preserve-3d' }}
-              >
-                {/* شیمر بالای کارت */}
-                <div className="absolute top-0 inset-x-0 h-0.5 overflow-hidden">
-                  <motion.div
-                    className="h-full w-1/2 bg-gradient-to-r from-transparent via-primary-400 to-transparent"
-                    animate={{ x: ['-100%', '200%'] }}
-                    transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', repeatDelay: 2 }}
-                  />
-                </div>
-
-                <div className="absolute top-0 right-0 w-64 h-64 bg-glow-top-right opacity-40 pointer-events-none" />
-
-                <div className="relative z-10">
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4 }}
-                    className="mb-8"
-                  >
-                    <div className="inline-flex items-center gap-2 bg-primary-50 border border-primary-200 rounded-full px-3.5 py-1.5 mb-4">
-                      <Shield className="h-4 w-4 text-primary-500" />
-                      <span className="text-primary-700 text-xs font-semibold">ورود امن</span>
-                    </div>
-
-                    <h2 className="text-[28px] font-black text-text-primary leading-tight">خوش آمدید</h2>
-                    <p className="text-text-muted text-sm mt-1.5 leading-relaxed">
-                      برای ادامه، اطلاعات ورود خود را وارد کنید
-                    </p>
-                  </motion.div>
-
-                  <LoginForm />
-
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.5 }}
-                    className="mt-8 pt-6 border-t border-border-subtle"
-                  >
-                    <div className="flex items-center justify-center gap-6">
-                      {[
-                        { icon: Shield, label: 'اتصال امن' },
-                        { icon: TrendingUp, label: 'داده‌های به‌روز' },
-                        { icon: Heart, label: 'مراقبت ۲۴/۷' },
-                      ].map(({ icon: Icon, label }, i) => (
-                        <div key={i} className="flex items-center gap-1.5 text-text-muted">
-                          <Icon className="h-4 w-4 text-primary-400" />
-                          <span className="text-xs">{label}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <p className="text-center text-[11px] text-text-disabled mt-4">
-                      © ۱۴۰۴ سامانه پایش دیالیز — تمام حقوق محفوظ است
-                    </p>
-                  </motion.div>
-                </div>
+            {/* Password */}
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-[#374151]">
+                رمز عبور
+              </label>
+              <div className="relative">
+                <input
+                  type={showPass ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="رمز عبور خود را وارد کنید"
+                  autoComplete="current-password"
+                  className="w-full rounded-xl border border-slate-200 bg-[#F8FAFC] px-4 py-3 pl-12 text-sm text-[#0F172A] placeholder:text-[#94A3B8] focus:border-[#0EA5E9] focus:outline-none focus:ring-3 focus:ring-[#0EA5E9]/15 transition-all"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPass((p) => !p)}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#64748B]"
+                  tabIndex={-1}
+                >
+                  {showPass ? (
+                    <EyeOff className="h-4.5 w-4.5" />
+                  ) : (
+                    <Eye className="h-4.5 w-4.5" />
+                  )}
+                </button>
               </div>
-            </AnimatedGradientBorder>
-          </TiltCard>
-        </motion.div>
-      </div>
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={isPending || !phone || !password}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-l from-[#0EA5E9] to-[#0284C7] py-3 text-sm font-semibold text-white shadow-lg shadow-[#0EA5E9]/25 transition-all hover:shadow-[#0EA5E9]/40 disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98]"
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  در حال ورود...
+                </>
+              ) : (
+                'ورود به سیستم'
+              )}
+            </button>
+          </form>
+
+          {/* Footer */}
+          <p className="mt-6 text-center text-xs text-[#94A3B8]">
+            سامانه پایش و آموزش بیماران همودیالیز
+          </p>
+        </div>
+      </motion.div>
     </div>
   )
 }

@@ -1,108 +1,113 @@
-// src/features/lab-results/components/LabSummaryGrid.tsx
 'use client'
 
 import { motion } from 'motion/react'
 import { FlaskConical } from 'lucide-react'
-import { LabResultCard } from './LabResultCard'
+import { useLatestLabs } from '../hooks/useLabResults'
+import { LabStatusBadge } from './LabStatusBadge'
+import { LAB_TEST_LABELS } from '../types/lab.types'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
-import type { LabPanel, ReferenceRange } from '../types/lab.types'
+import { formatShortDate } from '@/lib/utils/date.utils'
 
-interface Props {
-  panel?: LabPanel | null
-  refRanges?: ReferenceRange[]
-  isLoading?: boolean
+interface LabSummaryGridProps {
+  patientId: string
 }
 
-// گروه‌بندی آزمایش‌ها
-const LAB_GROUPS = [
-  { label: 'الکترولیت‌ها',     codes: ['K', 'Na', 'Ca', 'P'] },
-  { label: 'خون',              codes: ['Hb', 'Hct'] },
-  { label: 'التهاب و تغذیه',  codes: ['CRP', 'Alb'] },
-  { label: 'آهن',              codes: ['Ferritin', 'TSAT'] },
-  { label: 'متابولیک',         codes: ['PTH', 'Urea', 'Cr'] },
-]
+export function LabSummaryGrid({ patientId }: LabSummaryGridProps) {
+  const { data, isLoading, isError } = useLatestLabs(patientId)
 
-export function LabSummaryGrid({ panel, refRanges = [], isLoading }: Props) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <Skeleton key={i} className="h-32 rounded-2xl" />
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} className="h-20 rounded-xl" />
         ))}
       </div>
     )
   }
 
-  if (!panel || !panel.results?.length) {
+  if (isError) {
+    return (
+      <p className="text-sm text-red-500 text-center py-4">
+        خطا در دریافت آزمایش‌ها
+      </p>
+    )
+  }
+
+  if (!data || data.results.length === 0) {
     return (
       <EmptyState
-        icon={<FlaskConical className="w-10 h-10 text-primary-300" />}
+        icon={<FlaskConical />}
         title="آزمایشی ثبت نشده"
-        description="اولین پنل آزمایشگاهی را ثبت کنید"
+        description="هنوز نتیجه آزمایشی برای این بیمار ثبت نشده است"
+        size="sm"
       />
     )
   }
 
-  const refMap = Object.fromEntries(refRanges.map((r) => [r.test_code, r]))
-  const resultMap = Object.fromEntries(panel.results.map((r) => [r.test_code, r]))
-
   return (
-    <div className="space-y-6">
-      {/* Summary header */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center gap-4 flex-wrap"
-      >
-        <div className="flex items-center gap-2 text-sm text-slate-500">
-          <span>تاریخ آزمایش:</span>
-          <span className="font-medium text-slate-700">{panel.collected_at}</span>
-        </div>
-        {panel.critical_count > 0 && (
-          <span className="px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-medium">
-            {panel.critical_count} مورد بحرانی
+    <div>
+      <p className="text-xs text-slate-400 mb-3">
+        تاریخ: {formatShortDate(data.collected_at)}
+        {data.abnormal_count > 0 && (
+          <span className="mr-2 text-amber-600 font-medium">
+            {data.abnormal_count} مورد غیرنرمال
           </span>
         )}
-        {panel.abnormal_count > 0 && (
-          <span className="px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium">
-            {panel.abnormal_count} مورد غیرطبیعی
+        {data.critical_count > 0 && (
+          <span className="mr-1 text-red-600 font-bold">
+            ({data.critical_count} بحرانی)
           </span>
         )}
-      </motion.div>
+      </p>
 
-      {/* Groups */}
-      {LAB_GROUPS.map((group, gi) => {
-        const groupResults = group.codes
-          .map((code) => resultMap[code])
-          .filter(Boolean)
-
-        if (!groupResults.length) return null
-
-        return (
-          <div key={group.label}>
-            <motion.h4
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: gi * 0.05 }}
-              className="text-sm font-semibold text-slate-500 mb-3 flex items-center gap-2"
-            >
-              <span className="w-4 h-px bg-primary-300 inline-block" />
-              {group.label}
-            </motion.h4>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {groupResults.map((result, ri) => (
-                <LabResultCard
-                  key={result.test_code}
-                  result={result}
-                  refRange={refMap[result.test_code]}
-                  delay={gi * 0.05 + ri * 0.04}
-                />
-              ))}
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+        {data.results.map((result, i) => (
+          <motion.div
+            key={result.id}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: i * 0.04 }}
+            className={`rounded-xl border p-3 ${
+              result.is_critical
+                ? 'border-red-200 bg-red-50'
+                : result.is_abnormal
+                ? 'border-amber-200 bg-amber-50'
+                : 'border-slate-100 bg-white'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-medium text-slate-500">
+                {result.test_name_fa || LAB_TEST_LABELS[result.test_code] || result.test_code}
+              </span>
             </div>
-          </div>
-        )
-      })}
+            <div className="flex items-baseline gap-1 mb-1.5">
+              <span
+                className={`text-base font-bold ${
+                  result.is_critical
+                    ? 'text-red-700'
+                    : result.is_abnormal
+                    ? 'text-amber-700'
+                    : 'text-slate-800'
+                }`}
+              >
+                {result.value}
+              </span>
+              <span className="text-[11px] text-slate-400">{result.unit}</span>
+            </div>
+            <LabStatusBadge
+              isAbnormal={result.is_abnormal}
+              isCritical={result.is_critical}
+              direction={result.abnormality_direction}
+            />
+            {(result.ref_range_low != null || result.ref_range_high != null) && (
+              <p className="text-[10px] text-slate-400 mt-1">
+                نرمال: {result.ref_range_low}–{result.ref_range_high}
+              </p>
+            )}
+          </motion.div>
+        ))}
+      </div>
     </div>
   )
 }

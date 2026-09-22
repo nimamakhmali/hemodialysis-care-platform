@@ -1,317 +1,331 @@
-"use client";
+'use client'
 
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { motion, AnimatePresence } from "motion/react";
-import { User, Phone, Scale, Calendar, Activity, X } from "lucide-react";
-import { cn } from "@/lib/utils/cn";
-import { useCreatePatient, useUpdatePatient } from "../hooks/usePatients";
-import type { Patient, CreatePatientForm } from "../types/patient.types";
+import { useState } from 'react'
+import { Save, X } from 'lucide-react'
+import { useCreatePatient, useUpdatePatient } from '../hooks/usePatients'
+import type {
+  CreatePatientRequest,
+  PatientDetail,
+} from '../types/patient.types'
 
-// ── Schema ────────────────────────────────────
-const schema = z.object({
-  medical_record_number: z.string().min(1, "کد بیمارستانی الزامی است"),
-  full_name: z.string().min(2, "نام حداقل ۲ کاراکتر باشد"),
-  date_of_birth: z.string().min(1, "تاریخ تولد الزامی است"),
-  gender: z.enum(["male", "female"]),
-  phone_number: z
-    .string()
-    .regex(/^09\d{9}$/, "شماره موبایل معتبر وارد کنید (09XXXXXXXXX)"),
-  dry_weight: z
-    .number({ invalid_type_error: "عدد وارد کنید" })
-    .min(20, "وزن حداقل ۲۰ کیلوگرم")
-    .max(250, "وزن حداکثر ۲۵۰ کیلوگرم"),
-  vascular_access_type: z.enum(["fistula", "graft", "catheter"]),
-  dialysis_frequency: z.coerce.number().min(1).max(4),
-  dialysis_start_date: z.string().min(1, "تاریخ شروع دیالیز الزامی است"),
-});
-
-type FormData = z.infer<typeof schema>;
-
-// ── Field Component ───────────────────────────
-function FormField({
-  label,
-  error,
-  required,
-  children,
-}: {
-  label: string;
-  error?: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <label className="flex items-center gap-1 text-sm font-medium text-slate-700">
-        {label}
-        {required && <span className="text-red-500">*</span>}
-      </label>
-      {children}
-      <AnimatePresence>
-        {error && (
-          <motion.p
-            className="text-xs text-red-500"
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-          >
-            {error}
-          </motion.p>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-const inputCls = (hasError?: boolean) =>
-  cn(
-    "w-full rounded-xl border bg-white px-4 py-2.5 text-sm text-slate-800",
-    "placeholder:text-slate-400 outline-none transition-all duration-200",
-    "focus:ring-2 focus:ring-primary-400/30 focus:border-primary-400",
-    hasError
-      ? "border-red-300 focus:border-red-400 focus:ring-red-200/40"
-      : "border-primary-100 hover:border-primary-200"
-  );
-
-// ── Main Component ────────────────────────────
 interface PatientFormProps {
-  patient?: Patient;
-  onSuccess?: () => void;
-  onCancel?: () => void;
+  initialData?: PatientDetail
+  onSuccess?: (id: string) => void
+  onCancel?: () => void
 }
 
-export function PatientForm({ patient, onSuccess, onCancel }: PatientFormProps) {
-  const isEdit = Boolean(patient);
-  const createMutation = useCreatePatient();
-  const updateMutation = useUpdatePatient(patient?.id ?? "");
+type FormData = CreatePatientRequest
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<FormData>({
-    resolver: zodResolver(schema),
-    defaultValues: patient
-      ? {
-          medical_record_number: patient.medical_record_number,
-          full_name: patient.full_name,
-          date_of_birth: patient.date_of_birth,
-          gender: patient.gender,
-          phone_number: patient.phone_number,
-          dry_weight: patient.dry_weight,
-          vascular_access_type: patient.vascular_access_type,
-          dialysis_frequency: patient.dialysis_frequency,
-          dialysis_start_date: patient.dialysis_start_date,
-        }
-      : {
-          gender: "male",
-          vascular_access_type: "fistula",
-          dialysis_frequency: 3,
-        },
-  });
+const VASCULAR_OPTIONS = [
+  { value: 'fistula', label: 'فیستول' },
+  { value: 'graft', label: 'گرافت' },
+  { value: 'catheter', label: 'کاتتر' },
+]
 
-  const onSubmit = async (data: FormData) => {
-    const payload: CreatePatientForm = {
-      ...data,
-      dry_weight: Number(data.dry_weight),
-      dialysis_frequency: Number(data.dialysis_frequency) as 1 | 2 | 3 | 4,
-    };
+export function PatientForm({
+  initialData,
+  onSuccess,
+  onCancel,
+}: PatientFormProps) {
+  const isEdit = !!initialData
+  const createMutation = useCreatePatient()
+  const updateMutation = useUpdatePatient(initialData?.id ?? '')
+
+  const [form, setForm] = useState<FormData>({
+    medical_record_number: initialData?.medical_record_number ?? '',
+    full_name: initialData?.full_name ?? '',
+    date_of_birth: initialData?.date_of_birth ?? '',
+    gender: initialData?.gender ?? 'male',
+    phone_number: initialData?.phone_number ?? '',
+    dry_weight: initialData?.dry_weight ?? undefined,
+    vascular_access_type: initialData?.vascular_access_type ?? undefined,
+    dialysis_frequency: initialData?.dialysis_frequency ?? 3,
+    dialysis_start_date: initialData?.dialysis_start_date ?? '',
+    create_user_account: !isEdit,
+    password: '',
+  })
+
+  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>(
+    {}
+  )
+
+  const set = <K extends keyof FormData>(key: K, value: FormData[K]) => {
+    setForm((prev) => ({ ...prev, [key]: value }))
+    setErrors((prev) => ({ ...prev, [key]: undefined }))
+  }
+
+  const validate = (): boolean => {
+    const e: Partial<Record<keyof FormData, string>> = {}
+    if (!form.medical_record_number.trim())
+      e.medical_record_number = 'کد بیمارستانی الزامی است'
+    if (!form.full_name.trim()) e.full_name = 'نام کامل الزامی است'
+    if (!form.date_of_birth) e.date_of_birth = 'تاریخ تولد الزامی است'
+    if (!form.phone_number.trim()) e.phone_number = 'شماره موبایل الزامی است'
+    if (form.dry_weight && (form.dry_weight < 20 || form.dry_weight > 250))
+      e.dry_weight = 'وزن باید بین ۲۰ تا ۲۵۰ کیلوگرم باشد'
+    if (!isEdit && form.create_user_account && !form.password)
+      e.password = 'رمز عبور برای ایجاد حساب الزامی است'
+    setErrors(e)
+    return Object.keys(e).length === 0
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!validate()) return
+
+    const payload: FormData = {
+      ...form,
+      dry_weight: form.dry_weight ? Number(form.dry_weight) : undefined,
+      dialysis_frequency: form.dialysis_frequency
+        ? Number(form.dialysis_frequency)
+        : undefined,
+      dialysis_start_date: form.dialysis_start_date || undefined,
+      password: form.password || undefined,
+    }
 
     if (isEdit) {
-      await updateMutation.mutateAsync(payload);
+      const result = await updateMutation.mutateAsync(payload)
+      onSuccess?.(result.id)
     } else {
-      await createMutation.mutateAsync(payload);
+      const result = await createMutation.mutateAsync(payload)
+      onSuccess?.(result.id)
     }
-    onSuccess?.();
-  };
+  }
 
-  const isPending = createMutation.isPending || updateMutation.isPending || isSubmitting;
+  const isPending = createMutation.isPending || updateMutation.isPending
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
-      {/* Section: اطلاعات هویتی */}
-      <div>
-        <p className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-          <User className="h-3.5 w-3.5" />
-          اطلاعات هویتی
-        </p>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <FormField
-            label="کد بیمارستانی"
-            error={errors.medical_record_number?.message}
-            required
-          >
-            <input
-              {...register("medical_record_number")}
-              className={inputCls(!!errors.medical_record_number)}
-              placeholder="مثال: MRN-001"
-              dir="ltr"
-            />
-          </FormField>
+    <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+      {/* Basic info */}
+      <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm space-y-4">
+        <h3 className="text-sm font-semibold text-slate-700">اطلاعات پایه</h3>
 
-          <FormField
-            label="نام و نام خانوادگی"
-            error={errors.full_name?.message}
-            required
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <FieldGroup
+            label="نام کامل *"
+            error={errors.full_name}
           >
             <input
-              {...register("full_name")}
+              value={form.full_name}
+              onChange={(e) => set('full_name', e.target.value)}
               className={inputCls(!!errors.full_name)}
-              placeholder="نام کامل بیمار"
+              placeholder="نام و نام خانوادگی"
             />
-          </FormField>
+          </FieldGroup>
 
-          <FormField
-            label="جنسیت"
-            error={errors.gender?.message}
-            required
+          <FieldGroup
+            label="کد بیمارستانی *"
+            error={errors.medical_record_number}
           >
-            <select {...register("gender")} className={inputCls(!!errors.gender)}>
+            <input
+              value={form.medical_record_number}
+              onChange={(e) =>
+                set('medical_record_number', e.target.value)
+              }
+              className={inputCls(!!errors.medical_record_number)}
+              placeholder="مثلاً DL-001"
+              disabled={isEdit}
+            />
+          </FieldGroup>
+
+          <FieldGroup label="جنسیت">
+            <select
+              value={form.gender}
+              onChange={(e) =>
+                set('gender', e.target.value as 'male' | 'female')
+              }
+              className={inputCls(false)}
+            >
               <option value="male">مرد</option>
               <option value="female">زن</option>
             </select>
-          </FormField>
+          </FieldGroup>
 
-          <FormField
-            label="تاریخ تولد"
-            error={errors.date_of_birth?.message}
-            required
-          >
+          <FieldGroup label="تاریخ تولد *" error={errors.date_of_birth}>
             <input
-              {...register("date_of_birth")}
               type="date"
+              value={form.date_of_birth}
+              onChange={(e) => set('date_of_birth', e.target.value)}
               className={inputCls(!!errors.date_of_birth)}
-              dir="ltr"
             />
-          </FormField>
+          </FieldGroup>
 
-          <FormField
-            label="شماره موبایل"
-            error={errors.phone_number?.message}
-            required
-          >
+          <FieldGroup label="شماره موبایل *" error={errors.phone_number}>
             <input
-              {...register("phone_number")}
+              type="tel"
+              dir="ltr"
+              value={form.phone_number}
+              onChange={(e) => set('phone_number', e.target.value)}
               className={inputCls(!!errors.phone_number)}
               placeholder="09XXXXXXXXX"
-              dir="ltr"
-              maxLength={11}
             />
-          </FormField>
+          </FieldGroup>
         </div>
       </div>
 
-      {/* Divider */}
-      <div className="h-px bg-gradient-to-r from-transparent via-primary-100 to-transparent" />
+      {/* Clinical info */}
+      <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm space-y-4">
+        <h3 className="text-sm font-semibold text-slate-700">اطلاعات بالینی</h3>
 
-      {/* Section: اطلاعات بالینی */}
-      <div>
-        <p className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-          <Activity className="h-3.5 w-3.5" />
-          اطلاعات بالینی
-        </p>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <FormField
-            label="وزن خشک (kg)"
-            error={errors.dry_weight?.message}
-            required
-          >
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <FieldGroup label="وزن خشک (kg)" error={errors.dry_weight}>
             <input
-              {...register("dry_weight", { valueAsNumber: true })}
               type="number"
               step="0.1"
+              value={form.dry_weight ?? ''}
+              onChange={(e) =>
+                set(
+                  'dry_weight',
+                  e.target.value ? Number(e.target.value) : undefined
+                )
+              }
               className={inputCls(!!errors.dry_weight)}
-              placeholder="مثال: 68.5"
-              dir="ltr"
+              placeholder="مثلاً ۷۵.۵"
             />
-          </FormField>
+          </FieldGroup>
 
-          <FormField
-            label="نوع دسترسی عروقی"
-            error={errors.vascular_access_type?.message}
-            required
-          >
+          <FieldGroup label="نوع دسترسی عروقی">
             <select
-              {...register("vascular_access_type")}
-              className={inputCls(!!errors.vascular_access_type)}
+              value={form.vascular_access_type ?? ''}
+              onChange={(e) =>
+                set(
+                  'vascular_access_type',
+                  (e.target.value as 'fistula' | 'graft' | 'catheter') ||
+                    undefined
+                )
+              }
+              className={inputCls(false)}
             >
-              <option value="fistula">فیستول</option>
-              <option value="graft">گرافت</option>
-              <option value="catheter">کاتتر</option>
+              <option value="">انتخاب کنید</option>
+              {VASCULAR_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
             </select>
-          </FormField>
+          </FieldGroup>
 
-          <FormField
-            label="تعداد جلسات در هفته"
-            error={errors.dialysis_frequency?.message}
-            required
-          >
+          <FieldGroup label="تعداد جلسات در هفته">
             <select
-              {...register("dialysis_frequency", { valueAsNumber: true })}
-              className={inputCls(!!errors.dialysis_frequency)}
+              value={form.dialysis_frequency ?? 3}
+              onChange={(e) =>
+                set('dialysis_frequency', Number(e.target.value))
+              }
+              className={inputCls(false)}
             >
-              <option value={2}>۲ جلسه</option>
-              <option value={3}>۳ جلسه (استاندارد)</option>
-              <option value={4}>۴ جلسه</option>
+              <option value={2}>۲ بار</option>
+              <option value={3}>۳ بار</option>
+              <option value={4}>۴ بار</option>
             </select>
-          </FormField>
+          </FieldGroup>
 
-          <FormField
-            label="تاریخ شروع دیالیز"
-            error={errors.dialysis_start_date?.message}
-            required
-          >
+          <FieldGroup label="تاریخ شروع دیالیز">
             <input
-              {...register("dialysis_start_date")}
               type="date"
-              className={inputCls(!!errors.dialysis_start_date)}
-              dir="ltr"
+              value={form.dialysis_start_date ?? ''}
+              onChange={(e) =>
+                set('dialysis_start_date', e.target.value || undefined)
+              }
+              className={inputCls(false)}
             />
-          </FormField>
+          </FieldGroup>
         </div>
       </div>
 
+      {/* Account */}
+      {!isEdit && (
+        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm space-y-4">
+          <div className="flex items-center gap-3">
+            <h3 className="text-sm font-semibold text-slate-700">
+              حساب کاربری
+            </h3>
+            <label className="flex items-center gap-2 mr-auto">
+              <input
+                type="checkbox"
+                checked={form.create_user_account}
+                onChange={(e) =>
+                  set('create_user_account', e.target.checked)
+                }
+                className="rounded accent-[#0EA5E9]"
+              />
+              <span className="text-xs text-slate-600">
+                ایجاد حساب برای بیمار
+              </span>
+            </label>
+          </div>
+
+          {form.create_user_account && (
+            <FieldGroup label="رمز عبور اولیه *" error={errors.password}>
+              <input
+                type="password"
+                value={form.password ?? ''}
+                onChange={(e) => set('password', e.target.value)}
+                className={inputCls(!!errors.password)}
+                placeholder="حداقل ۸ کاراکتر"
+              />
+            </FieldGroup>
+          )}
+        </div>
+      )}
+
       {/* Actions */}
-      <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
+      <div className="flex items-center justify-end gap-3">
         {onCancel && (
           <button
             type="button"
             onClick={onCancel}
-            className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+            disabled={isPending}
+            className="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
           >
             <X className="h-4 w-4" />
             انصراف
           </button>
         )}
-        <motion.button
+        <button
           type="submit"
           disabled={isPending}
-          className={cn(
-            "flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium text-white transition-all",
-            isPending
-              ? "cursor-not-allowed bg-primary-300"
-              : "bg-primary-500 hover:bg-primary-600 shadow-sm"
-          )}
-          whileHover={{ scale: isPending ? 1 : 1.02 }}
-          whileTap={{ scale: isPending ? 1 : 0.98 }}
+          className="flex items-center gap-2 rounded-xl bg-[#0EA5E9] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#0284C7] disabled:opacity-60"
         >
-          {isPending ? (
-            <>
-              <motion.div
-                className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white"
-                animate={{ rotate: 360 }}
-                transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
-              />
-              در حال ذخیره...
-            </>
-          ) : isEdit ? (
-            "ذخیره تغییرات"
-          ) : (
-            "ایجاد بیمار"
-          )}
-        </motion.button>
+          <Save className="h-4 w-4" />
+          {isPending
+            ? 'در حال ذخیره...'
+            : isEdit
+            ? 'ذخیره تغییرات'
+            : 'ثبت بیمار'}
+        </button>
       </div>
     </form>
-  );
+  )
+}
+
+function FieldGroup({
+  label,
+  error,
+  children,
+}: {
+  label: string
+  error?: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="block text-xs font-medium text-slate-600">
+        {label}
+      </label>
+      {children}
+      {error && <p className="text-xs text-red-500">{error}</p>}
+    </div>
+  )
+}
+
+function inputCls(hasError: boolean) {
+  return `
+    w-full rounded-xl border px-3 py-2.5 text-sm
+    focus:outline-none focus:ring-2 transition-colors
+    ${
+      hasError
+        ? 'border-red-300 bg-red-50 focus:border-red-400 focus:ring-red-100 text-red-800'
+        : 'border-slate-200 bg-slate-50/50 focus:border-[#0EA5E9] focus:bg-white focus:ring-[#0EA5E9]/15 text-slate-800'
+    }
+  `
 }

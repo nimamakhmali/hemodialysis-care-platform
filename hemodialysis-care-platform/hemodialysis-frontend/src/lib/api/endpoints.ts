@@ -1,133 +1,126 @@
-// ═══════════════════════════════════════════════════════════════════════
-// API ENDPOINTS — مرکزی
-// منبع: OpenAPI واقعی بک‌اند (تمام مسیرها بدون trailing slash اضافی،
-// دقیقاً مطابق Swagger — هیچ مسیری حدس زده نشده است)
-// ═══════════════════════════════════════════════════════════════════════
+// ── مطابق دقیق با app/api/v1/router.py بک‌اند ──────────────────────────────
 
 export const API_ENDPOINTS = {
-  // ─── Auth ──────────────────────────────────────────────────────────
+  // Auth
   auth: {
     login: '/auth/login',
     refresh: '/auth/refresh',
     logout: '/auth/logout',
-    changePassword: '/auth/change-password',
     me: '/auth/me',
+    changePassword: '/auth/change-password',
   },
 
-  // ─── Patients ──────────────────────────────────────────────────────
+  // Patients
   patients: {
     list: '/patients/',
     create: '/patients/',
-    search: '/patients/search',
-    detail: (id: string) => `/patients/${id}`,
-    update: (id: string) => `/patients/${id}`,
-    deactivate: (id: string) => `/patients/${id}`,
-    summary: (id: string) => `/patients/${id}/summary`,
-    dashboard: (id: string) => `/patients/${id}/dashboard`,
-    trends: (id: string) => `/patients/${id}/trends`,
-    healthStatus: (id: string) => `/patients/${id}/health-status`,
+    detail: (id: string) => `/patients/${id}/`,
+    update: (id: string) => `/patients/${id}/`,
+    deactivate: (id: string) => `/patients/${id}/`,
+    summary: (id: string) => `/patients/${id}/summary/`,
+    dashboard: (id: string) => `/patients/${id}/dashboard/`,
+    trends: (id: string) => `/patients/${id}/trends/`,
+    timeline: (id: string) => `/patients/${id}/timeline/`,
+    search: '/patients/search/',
   },
 
-  // ─── Sessions ──────────────────────────────────────────────────────
+  // Dialysis Sessions
   sessions: {
-    list: (patientId: string) => `/patients/${patientId}/sessions`,
-    create: (patientId: string) => `/patients/${patientId}/sessions`,
+    list: (patientId: string) => `/patients/${patientId}/sessions/`,
+    create: (patientId: string) => `/patients/${patientId}/sessions/`,
     detail: (patientId: string, sessionId: string) =>
-      `/patients/${patientId}/sessions/${sessionId}`,
+      `/patients/${patientId}/sessions/${sessionId}/`,
     update: (patientId: string, sessionId: string) =>
-      `/patients/${patientId}/sessions/${sessionId}`,
+      `/patients/${patientId}/sessions/${sessionId}/`,
     weightTrend: (patientId: string) =>
-      `/patients/${patientId}/sessions/weight-trend`,
-    bpTrend: (patientId: string) => `/patients/${patientId}/sessions/bp-trend`,
+      `/patients/${patientId}/sessions/weight-trend/`,
+    bpTrend: (patientId: string) =>
+      `/patients/${patientId}/sessions/bp-trend/`,
   },
 
-  // ─── Labs ──────────────────────────────────────────────────────────
+  // Lab Results
   labs: {
-    // GET همین مسیر = تاریخچه/لیست، POST همین مسیر = ثبت پنل جدید
-    list: (patientId: string) => `/patients/${patientId}/labs`,
-    history: (patientId: string) => `/patients/${patientId}/labs`,
-    create: (patientId: string) => `/patients/${patientId}/labs`,
-    latest: (patientId: string) => `/patients/${patientId}/labs/latest`,
+    list: (patientId: string) => `/patients/${patientId}/labs/`,
+    create: (patientId: string) => `/patients/${patientId}/labs/`,
+    latest: (patientId: string) => `/patients/${patientId}/labs/latest/`,
     panelDetail: (patientId: string, panelId: string) =>
-      `/patients/${patientId}/labs/${panelId}`,
+      `/patients/${patientId}/labs/${panelId}/`,
     trend: (patientId: string, testCode: string) =>
-      `/patients/${patientId}/labs/trend/${testCode}`,
-    referenceRanges: '/labs/reference-ranges',
+      `/patients/${patientId}/labs/trend/${testCode}/`,
+    referenceRanges: '/labs/reference-ranges/',
   },
 
-  // ─── Symptoms ──────────────────────────────────────────────────────
+  // Symptoms
   symptoms: {
-    create: (patientId: string) => `/patients/${patientId}/symptoms`,
-    list: (patientId: string) => `/patients/${patientId}/symptoms`,
-    summary: (patientId: string) => `/patients/${patientId}/symptoms/summary`,
+    list: (patientId: string) => `/patients/${patientId}/symptoms/`,
+    create: (patientId: string) => `/patients/${patientId}/symptoms/`,
+    summary: (patientId: string) =>
+      `/patients/${patientId}/symptoms/summary/`,
   },
 
-  // ─── Fluid ─────────────────────────────────────────────────────────
+  // Fluid
   fluid: {
-    log: (patientId: string) => `/patients/${patientId}/fluid`,
-    history: (patientId: string) => `/patients/${patientId}/fluid`,
+    log: (patientId: string) => `/patients/${patientId}/fluid/`,
+    history: (patientId: string) => `/patients/${patientId}/fluid/`,
   },
 
-  // ─── Diet ──────────────────────────────────────────────────────────
+  // Diet
   diet: {
-    log: (patientId: string) => `/patients/${patientId}/diet`,
-    history: (patientId: string) => `/patients/${patientId}/diet`,
-    summary: (patientId: string) => `/patients/${patientId}/diet/summary`,
+    log: (patientId: string) => `/patients/${patientId}/diet/`,
+    history: (patientId: string) => `/patients/${patientId}/diet/`,
+    summary: (patientId: string) => `/patients/${patientId}/diet/summary/`,
   },
 
-  // ─── Alerts ────────────────────────────────────────────────────────
+  // Alerts
   alerts: {
-    all: '/alerts',
-    stats: '/alerts/stats',
-    patient: (patientId: string) => `/patients/${patientId}/alerts`,
-    acknowledge: (alertId: string) => `/alerts/${alertId}/acknowledge`,
-    resolve: (alertId: string) => `/alerts/${alertId}/resolve`,
+    all: '/alerts/',
+    patient: (patientId: string) => `/patients/${patientId}/alerts/`,
+    acknowledge: (alertId: string) => `/alerts/${alertId}/acknowledge/`,
+    resolve: (alertId: string) => `/alerts/${alertId}/resolve/`,
   },
 
-  // ─── Recommendations ───────────────────────────────────────────────
+  // Recommendations
   recommendations: {
-    pending: '/recommendations/pending',
-    pendingCount: '/recommendations/pending-count',
-    patient: (patientId: string) => `/patients/${patientId}/recommendations`,
-    approve: (recId: string) => `/recommendations/${recId}/approve`,
-    reject: (recId: string) => `/recommendations/${recId}/reject`,
+    pending: '/recommendations/pending/',
+    patient: (patientId: string) =>
+      `/patients/${patientId}/recommendations/`,
+    approve: (recId: string) => `/recommendations/${recId}/approve/`,
+    reject: (recId: string) => `/recommendations/${recId}/reject/`,
   },
 
-  // ─── Messages ──────────────────────────────────────────────────────
+  // Messages
   messages: {
-    list: (patientId: string) => `/patients/${patientId}/messages`,
-    read: (messageId: string) => `/messages/${messageId}/read`,
-    readAll: (patientId: string) => `/patients/${patientId}/messages/read-all`,
+    list: (patientId: string) => `/patients/${patientId}/messages/`,
+    read: (messageId: string) => `/messages/${messageId}/read/`,
+    readAll: (patientId: string) =>
+      `/patients/${patientId}/messages/read-all/`,
     unreadCount: (patientId: string) =>
-      `/patients/${patientId}/messages/unread-count`,
+      `/patients/${patientId}/messages/unread-count/`,
   },
 
-  // ─── Education ─────────────────────────────────────────────────────
+  // Education
   education: {
-    list: '/education',
-    create: '/education',
-    search: '/education/search',
-    detail: (topicCode: string) => `/education/${topicCode}`,
-    update: (contentId: string) => `/education/${contentId}`,
-    relevant: (patientId: string) => `/patients/${patientId}/education/relevant`,
+    list: '/education/',
+    detail: (topicCode: string) => `/education/${topicCode}/`,
+    relevant: (patientId: string) =>
+      `/patients/${patientId}/education/relevant/`,
+    create: '/education/',
+    update: (id: string) => `/education/${id}/`,
   },
 
-  // ─── Clinician ─────────────────────────────────────────────────────
+  // Clinician Dashboard
   clinician: {
-    dashboard: '/clinician/dashboard',
-    overview: '/clinician/patients-overview',
-    alertsFeed: '/clinician/alerts-feed',
-    clinicalSummary: (patientId: string) =>
-      `/clinician/patient/${patientId}/clinical-summary`,
+    dashboard: '/clinician/dashboard/',
+    patientsOverview: '/clinician/patients-overview/',
+    alertsFeed: '/clinician/alerts-feed/',
   },
 
-  // ─── Admin ─────────────────────────────────────────────────────────
-  // ✅ اکنون پیاده‌سازی شده در بک‌اند (admin_users.py, admin_audit.py, admin_system.py)
+  // Admin
   admin: {
     users: {
       list: '/admin/users/',
-      create: '/admin/users/',
       detail: (id: string) => `/admin/users/${id}/`,
+      create: '/admin/users/',
       update: (id: string) => `/admin/users/${id}/`,
       activate: (id: string) => `/admin/users/${id}/activate/`,
       deactivate: (id: string) => `/admin/users/${id}/deactivate/`,
@@ -141,6 +134,10 @@ export const API_ENDPOINTS = {
       health: '/admin/system/health/',
       stats: '/admin/system/stats/',
     },
+    education: {
+      list: '/education/',
+      create: '/education/',
+      update: (id: string) => `/education/${id}/`,
+    },
   },
 } as const
-

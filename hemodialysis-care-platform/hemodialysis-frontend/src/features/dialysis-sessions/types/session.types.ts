@@ -1,9 +1,8 @@
-import type { SessionEvent, HealthStatus, TrendDirection } from '@/types/common.types'
+import type { SessionEvent } from '@/types/common.types'
 
 export interface SessionFormData {
   session_date: string
   session_start_time?: string
-  session_end_time?: string
   duration_minutes?: number
   pre_weight: number
   post_weight?: number
@@ -17,59 +16,46 @@ export interface SessionFormData {
   notes?: string
 }
 
-export interface DialysisSession {
+export interface SessionResponse {
   id: string
   patient_id: string
   session_date: string
-  session_start_time?: string
-  session_end_time?: string
-  duration_minutes?: number
+  session_start_time: string | null
+  session_end_time: string | null
+  duration_minutes: number | null
   pre_weight: number
-  post_weight?: number
+  post_weight: number | null
   dry_weight_at_session: number
-  weight_gain?: number
-  uf_volume?: number
-  idwg_percent?: number
-  bp_pre_systolic?: number
-  bp_pre_diastolic?: number
-  bp_during_systolic?: number
-  bp_during_diastolic?: number
-  bp_post_systolic?: number
-  bp_post_diastolic?: number
-  intradialytic_events?: SessionEvent[]
-  notes?: string
+  weight_gain: number | null
+  uf_volume: number | null
+  bp_pre_systolic: number | null
+  bp_pre_diastolic: number | null
+  bp_during_systolic: number | null
+  bp_during_diastolic: number | null
+  bp_post_systolic: number | null
+  bp_post_diastolic: number | null
+  intradialytic_events: SessionEvent[]
+  notes: string | null
   recorded_by: string
   created_at: string
   updated_at: string
 }
 
-export interface WeightTrendPoint {
+export interface WeightTrendItem {
   date: string
   pre_weight: number
-  post_weight?: number
+  post_weight: number | null
   dry_weight: number
-  weight_gain?: number
-  idwg_percent?: number
-  status: HealthStatus
+  idwg_kg: number | null
+  idwg_percent: number | null
 }
 
-export interface WeightTrendData {
-  sessions: WeightTrendPoint[]
-  average_idwg_percent: number
-  trend: TrendDirection
-  concerning: boolean
-}
-
-export interface BPTrendPoint {
+export interface BPTrendItem {
   date: string
-  pre: { systolic?: number; diastolic?: number }
-  during: { systolic?: number; diastolic?: number }
-  post: { systolic?: number; diastolic?: number }
-  status: HealthStatus
-}
-
-export interface BPTrendData {
-  sessions: BPTrendPoint[]
-  trend: TrendDirection
-  average_pre_systolic: number
+  pre_systolic: number | null
+  pre_diastolic: number | null
+  during_systolic: number | null
+  during_diastolic: number | null
+  post_systolic: number | null
+  post_diastolic: number | null
 }

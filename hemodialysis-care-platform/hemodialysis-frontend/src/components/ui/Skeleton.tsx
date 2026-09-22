@@ -7,42 +7,34 @@ interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
   lines?: number
 }
 
-export function Skeleton({
-  className,
-  variant = 'default',
-  width,
-  height,
-  lines,
-  style,
-  ...props
-}: SkeletonProps) {
-  if (variant === 'text' && lines) {
-    return (
-      <div className="space-y-2">
-        {Array.from({ length: lines }).map((_, i) => (
-          <Skeleton
-            key={i}
-            className={cn(i === lines - 1 && 'w-3/4', className)}
-            height={height ?? 14}
-          />
-        ))}
-      </div>
-    )
-  }
 
+interface SkeletonProps {
+  className?: string
+}
+
+export function Skeleton({ className }: SkeletonProps) {
   return (
     <div
       className={cn(
-        'shimmer',
-        variant === 'circular' ? 'rounded-full' : 'rounded-xl',
+        'animate-pulse rounded-xl bg-slate-100',
         className
       )}
-      style={{ width, height, ...style }}
-      {...props}
     />
   )
 }
 
+export function SkeletonText({ lines = 3, className }: { lines?: number; className?: string }) {
+  return (
+    <div className={cn('space-y-2', className)}>
+      {Array.from({ length: lines }).map((_, i) => (
+        <Skeleton
+          key={i}
+          className={cn('h-4', i === lines - 1 ? 'w-3/4' : 'w-full')}
+        />
+      ))}
+    </div>
+  )
+}
 // ─── Preset Skeletons ──────────────────────────────────────────────────────
 export function CardSkeleton({ className }: { className?: string }) {
   return (

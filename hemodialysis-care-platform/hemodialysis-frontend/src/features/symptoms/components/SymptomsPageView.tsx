@@ -1,64 +1,78 @@
-// src/features/symptoms/components/SymptomsPageView.tsx
-"use client";
+'use client'
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { SymptomReportForm } from "./SymptomReportForm";
-import { SymptomHistoryList } from "./SymptomHistoryList";
-import { Thermometer, History, ChevronDown } from "lucide-react";
-import { cn } from "@/lib/utils/cn";
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'motion/react'
+import { Plus, Activity } from 'lucide-react'
+import { useSymptomHistory } from '../hooks/useSymptoms'
+import { SymptomReportForm } from './SymptomReportForm'
+import { SymptomHistoryList } from './SymptomHistoryList'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { Modal } from '@/components/ui/Modal'
+import { Tabs } from '@/components/ui/Tabs'
+import { pageVariants } from '@/lib/animation/variants'
 
-interface Props {
-  patientId: string;
+interface SymptomsPageViewProps {
+  patientId: string
 }
 
-export function SymptomsPageView({ patientId }: Props) {
-  const [showHistory, setShowHistory] = useState(false);
+export function SymptomsPageView({ patientId }: SymptomsPageViewProps) {
+  const [showForm, setShowForm] = useState(false)
+  const [activeTab, setActiveTab] = useState<'report' | 'history'>('report')
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      variants={pageVariants}
+      initial="hidden"
+      animate="visible"
+      className="space-y-5"
+    >
       <PageHeader
         title="ثبت علائم"
-        description="علائم امروز خود را گزارش دهید"
-        icon={<Thermometer className="w-5 h-5" />}
+        description="علائم و عوارضی که احساس می‌کنید را ثبت کنید"
+        action={
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center gap-2 rounded-xl bg-primary-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-600"
+          >
+            <Plus className="h-4 w-4" />
+            ثبت علائم جدید
+          </button>
+        }
       />
 
-      {/* Form */}
-      <SymptomReportForm patientId={patientId} />
+      <Tabs
+        tabs={[
+          { key: 'report', label: 'ثبت سریع' },
+          { key: 'history', label: 'تاریخچه' },
+        ]}
+        activeTab={activeTab}
+        onChange={(t) => setActiveTab(t as 'report' | 'history')}
+      />
 
-      {/* History toggle */}
-      <motion.button
-        onClick={() => setShowHistory((p) => !p)}
-        className={cn(
-          "w-full flex items-center justify-center gap-2 py-3 rounded-2xl",
-          "border border-slate-200 bg-white text-slate-600 text-sm",
-          "hover:bg-slate-50 transition-colors"
-        )}
-        whileTap={{ scale: 0.99 }}
-      >
-        <History className="w-4 h-4" />
-        تاریخچه علائم
-        <motion.div
-          animate={{ rotate: showHistory ? 180 : 0 }}
-          transition={{ duration: 0.2 }}
+      {activeTab === 'report' && (
+        <SymptomReportForm
+          patientId={patientId}
+          onSuccess={() => setActiveTab('history')}
+          inline
+        />
+      )}
+
+      {activeTab === 'history' && (
+        <SymptomHistoryList patientId={patientId} />
+      )}
+
+      {showForm && (
+        <Modal
+          isOpen={showForm}
+          onClose={() => setShowForm(false)}
+          title="ثبت علائم"
         >
-          <ChevronDown className="w-4 h-4" />
-        </motion.div>
-      </motion.button>
-
-      <AnimatePresence>
-        {showHistory && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
-          >
-            <SymptomHistoryList patientId={patientId} />
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
+          <SymptomReportForm
+            patientId={patientId}
+            onSuccess={() => setShowForm(false)}
+          />
+        </Modal>
+      )}
+    </motion.div>
+  )
 }

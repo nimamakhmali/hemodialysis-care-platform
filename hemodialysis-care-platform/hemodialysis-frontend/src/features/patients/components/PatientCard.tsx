@@ -1,311 +1,195 @@
-"use client";
+'use client'
 
-import { useRef } from "react";
-import { motion, useMotionValue, useSpring, useTransform } from "motion/react";
-import { useRouter } from "next/navigation";
+import { motion } from 'motion/react'
+import { useRouter } from 'next/navigation'
 import {
   User,
-  Activity,
-  AlertTriangle,
-  ChevronLeft,
-  Droplets,
-  Heart,
-  FlaskConical,
+  Scale,
+  Bell,
   Clock,
-} from "lucide-react";
-import { cn } from "@/lib/utils/cn";
-import { formatRelativeTime } from "@/lib/utils/date.utils";
-import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
-import type { PatientSummary } from "../types/patient.types";
+  Droplets,
+  AlertTriangle,
+  CheckCircle2,
+} from 'lucide-react'
+import type { PatientSummary } from '../types/patient.types'
+import { formatDistanceToNow, formatDate } from '@/lib/utils/date.utils'
+import { cn } from '@/lib/utils/cn'
 
 interface PatientCardProps {
-  patient: PatientSummary;
-  index?: number;
+  patient: PatientSummary
+  index: number
 }
 
-// ── Helper: Severity Color ────────────────────
-function getSeverityConfig(high: number, medium: number) {
-  if (high > 0) return { color: "red", label: "بحرانی", dot: "bg-red-500" };
-  if (medium > 0) return { color: "amber", label: "هشدار", dot: "bg-amber-500" };
-  return { color: "emerald", label: "پایدار", dot: "bg-emerald-500" };
+const VASCULAR_LABELS = {
+  fistula: 'فیستول',
+  graft: 'گرافت',
+  catheter: 'کاتتر',
 }
 
-function LabValueChip({
-  label,
-  value,
-  status,
-}: {
-  label: string;
-  value?: number | null;
-  status?: string | null;
-}) {
-  if (!value) return null;
-
-  const statusColor =
-    status === "normal"
-      ? "text-emerald-600 bg-emerald-50"
-      : status?.includes("critical")
-      ? "text-red-600 bg-red-50"
-      : "text-amber-600 bg-amber-50";
-
-  return (
-    <div className={cn("flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium", statusColor)}>
-      <span className="text-slate-500">{label}</span>
-      <span>{value}</span>
-    </div>
-  );
-}
-
-export function PatientCard({ patient, index = 0 }: PatientCardProps) {
-  const router = useRouter();
-  const cardRef = useRef<HTMLDivElement>(null);
-
-  // ── 3D Tilt Effect ──────────────────────────
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-
-  const springConfig = { stiffness: 150, damping: 20 };
-  const rotateX = useSpring(
-    useTransform(mouseY, [-0.5, 0.5], [2, -2]),
-    springConfig
-  );
-  const rotateY = useSpring(
-    useTransform(mouseX, [-0.5, 0.5], [-2, 2]),
-    springConfig
-  );
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = cardRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const x = (e.clientX - rect.left) / rect.width - 0.5;
-    const y = (e.clientY - rect.top) / rect.height - 0.5;
-    mouseX.set(x);
-    mouseY.set(y);
-  };
-
-  const handleMouseLeave = () => {
-    mouseX.set(0);
-    mouseY.set(0);
-  };
-
-  const severityConfig = getSeverityConfig(
-    patient.active_alerts_high,
-    patient.active_alerts_medium
-  );
-
-  const hasAnyAlerts =
-    patient.active_alerts_high + patient.active_alerts_medium + patient.active_alerts_low > 0;
+export function PatientCard({ patient, index }: PatientCardProps) {
+  const router = useRouter()
+  const alerts = patient.summary?.active_alerts
+  const highAlerts = alerts?.high ?? 0
+  const medAlerts = alerts?.medium ?? 0
+  const totalAlerts = highAlerts + medAlerts + (alerts?.low ?? 0)
+  const hasUrgent = highAlerts > 0
+  const hasMedium = medAlerts > 0
 
   return (
     <motion.div
-      ref={cardRef}
-      style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      onClick={() => router.push(`/clinician/patients/${patient.id}`)}
-      className="group cursor-pointer"
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
-        duration: 0.4,
-        delay: index * 0.06,
+        duration: 0.35,
+        delay: index * 0.05,
         ease: [0.22, 1, 0.36, 1],
       }}
-      whileHover={{ scale: 1.01 }}
-      whileTap={{ scale: 0.99 }}
+      onClick={() =>
+        router.push(`/clinician/patients/${patient.id}`)
+      }
+      className={cn(
+        'group cursor-pointer rounded-2xl border p-5',
+        'transition-all duration-200',
+        'hover:shadow-lg hover:-translate-y-0.5',
+        hasUrgent
+          ? 'border-red-200 bg-red-50/40 hover:border-red-300'
+          : hasMedium
+          ? 'border-amber-200 bg-amber-50/30 hover:border-amber-300'
+          : 'border-slate-100 bg-white hover:border-[#BAE6FD]',
+      )}
+      style={{
+        boxShadow: hasUrgent
+          ? '0 2px 12px rgba(239,68,68,0.08)'
+          : '0 2px 12px rgba(14,165,233,0.06)',
+      }}
     >
-      <div
-        className={cn(
-          "relative overflow-hidden rounded-2xl border bg-white p-5",
-          "transition-all duration-300",
-          "hover:shadow-[0_8px_30px_rgba(14,165,233,0.12)]",
-          patient.active_alerts_high > 0
-            ? "border-red-200 bg-red-50/30"
-            : patient.active_alerts_medium > 0
-            ? "border-amber-200 bg-amber-50/20"
-            : "border-primary-100/60"
-        )}
-      >
-        {/* Top Glow for critical patients */}
-        {patient.active_alerts_high > 0 && (
-          <motion.div
-            className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-red-400 to-transparent"
-            animate={{ opacity: [0.5, 1, 0.5] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          />
-        )}
-
-        {/* Background watermark */}
+      {/* Header */}
+      <div className="flex items-start gap-3 mb-4">
+        {/* Avatar */}
         <div
-          className="absolute bottom-0 left-0 translate-y-1/4 -translate-x-1/4 opacity-[0.03]"
-          style={{ transform: "translate(-25%, 25%) scale(3)" }}
-        >
-          <User className="h-24 w-24 text-primary-500" />
-        </div>
-
-        {/* ── Header ────────────────────────── */}
-        <div className="mb-4 flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            {/* Avatar */}
-            <div className="relative">
-              <div
-                className={cn(
-                  "flex h-11 w-11 items-center justify-center rounded-xl",
-                  "bg-gradient-to-br from-primary-400 to-cyan-500",
-                  "text-base font-bold text-white shadow-sm"
-                )}
-              >
-                {patient.full_name.charAt(0)}
-              </div>
-              {/* Status dot */}
-              <motion.div
-                className={cn(
-                  "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white",
-                  severityConfig.dot
-                )}
-                animate={
-                  patient.active_alerts_high > 0
-                    ? { scale: [1, 1.3, 1] }
-                    : {}
-                }
-                transition={{ duration: 1.5, repeat: Infinity }}
-              />
-            </div>
-
-            {/* Name & ID */}
-            <div>
-              <h3 className="text-sm font-semibold text-slate-800 group-hover:text-primary-700 transition-colors">
-                {patient.full_name}
-              </h3>
-              <p className="mt-0.5 text-xs text-slate-400 font-mono">
-                #{patient.medical_record_number}
-              </p>
-            </div>
-          </div>
-
-          {/* Alert Badge */}
-          {hasAnyAlerts && (
-            <motion.div
-              className={cn(
-                "flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold",
-                patient.active_alerts_high > 0
-                  ? "bg-red-100 text-red-700"
-                  : "bg-amber-100 text-amber-700"
-              )}
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", stiffness: 400, damping: 20 }}
-            >
-              <AlertTriangle className="h-3 w-3" />
-              {patient.active_alerts_high > 0
-                ? `${patient.active_alerts_high} بحرانی`
-                : `${patient.active_alerts_medium} هشدار`}
-            </motion.div>
+          className={cn(
+            'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold',
+            hasUrgent
+              ? 'bg-red-100 text-red-600'
+              : hasMedium
+              ? 'bg-amber-100 text-amber-600'
+              : 'bg-[#E0F2FE] text-[#0284C7]'
           )}
+        >
+          {patient.full_name.charAt(0)}
         </div>
 
-        {/* ── Metrics Row ───────────────────── */}
-        <div className="mb-4 grid grid-cols-3 gap-2">
-          {/* IDWG */}
-          <div className="rounded-xl bg-primary-50 p-2.5 text-center">
-            <Droplets className="mx-auto mb-1 h-3.5 w-3.5 text-primary-400" />
-            <div className="text-sm font-bold text-primary-700">
-              {patient.last_idwg_percent != null ? (
-                <>
-                  <AnimatedNumber
-                    value={patient.last_idwg_percent}
-                    decimals={1}
-                  />
-                  <span className="text-xs">%</span>
-                </>
-              ) : (
-                <span className="text-xs text-slate-400">—</span>
-              )}
-            </div>
-            <p className="text-[10px] text-slate-500">IDWG</p>
-          </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-semibold text-[#0F172A] truncate">
+            {patient.full_name}
+          </h3>
+          <p className="text-xs text-[#64748B] mt-0.5">
+            {patient.medical_record_number}
+            {patient.age != null && ` · ${patient.age} سال`}
+          </p>
+        </div>
 
-          {/* BP */}
-          <div className="rounded-xl bg-cyan-50 p-2.5 text-center">
-            <Heart className="mx-auto mb-1 h-3.5 w-3.5 text-cyan-400" />
-            <div className="text-sm font-bold text-cyan-700">
-              {patient.last_bp_pre_systolic ? (
-                <AnimatedNumber value={patient.last_bp_pre_systolic} />
-              ) : (
-                <span className="text-xs text-slate-400">—</span>
-              )}
-            </div>
-            <p className="text-[10px] text-slate-500">فشار</p>
-          </div>
-
-          {/* Risk Score */}
+        {/* Alert badge */}
+        {totalAlerts > 0 && (
           <div
             className={cn(
-              "rounded-xl p-2.5 text-center",
-              (patient.risk_score ?? 0) > 60
-                ? "bg-red-50"
-                : (patient.risk_score ?? 0) > 30
-                ? "bg-amber-50"
-                : "bg-emerald-50"
+              'flex h-7 min-w-[28px] shrink-0 items-center justify-center rounded-full px-2',
+              'text-[11px] font-bold',
+              hasUrgent
+                ? 'bg-red-500 text-white'
+                : 'bg-amber-400 text-white'
             )}
           >
-            <Activity
-              className={cn(
-                "mx-auto mb-1 h-3.5 w-3.5",
-                (patient.risk_score ?? 0) > 60
-                  ? "text-red-400"
-                  : (patient.risk_score ?? 0) > 30
-                  ? "text-amber-400"
-                  : "text-emerald-400"
-              )}
-            />
-            <div
-              className={cn(
-                "text-sm font-bold",
-                (patient.risk_score ?? 0) > 60
-                  ? "text-red-700"
-                  : (patient.risk_score ?? 0) > 30
-                  ? "text-amber-700"
-                  : "text-emerald-700"
-              )}
-            >
-              {patient.risk_score != null ? (
-                <AnimatedNumber value={patient.risk_score} />
-              ) : (
-                <span className="text-xs text-slate-400">—</span>
-              )}
-            </div>
-            <p className="text-[10px] text-slate-500">ریسک</p>
+            {totalAlerts}
           </div>
+        )}
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-2 mb-4">
+        {/* Dry weight */}
+        <StatBox
+          icon={<Scale className="h-3.5 w-3.5" />}
+          label="وزن خشک"
+          value={patient.dry_weight ? `${patient.dry_weight}kg` : '—'}
+        />
+
+        {/* Vascular access */}
+        <StatBox
+          icon={<Droplets className="h-3.5 w-3.5" />}
+          label="دسترسی"
+          value={
+            patient.vascular_access_type
+              ? VASCULAR_LABELS[patient.vascular_access_type]
+              : '—'
+          }
+        />
+
+        {/* IDWG or weight status */}
+        <StatBox
+          icon={<User className="h-3.5 w-3.5" />}
+          label="وضعیت"
+          value={
+            patient.summary?.weight_status === 'ok'
+              ? '✓ مناسب'
+              : patient.summary?.weight_status === 'warning'
+              ? '⚠ هشدار'
+              : patient.summary?.weight_status === 'critical'
+              ? '🔴 بحرانی'
+              : '—'
+          }
+          highlight={patient.summary?.weight_status !== 'ok'}
+        />
+      </div>
+
+      {/* Divider */}
+      <div className="h-px bg-slate-100 mb-3" />
+
+      {/* Footer */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5 text-[11px] text-[#64748B]">
+          <Clock className="h-3.5 w-3.5 text-[#94A3B8]" />
+          {patient.summary?.last_session
+            ? formatDistanceToNow(patient.summary.last_session.session_date)
+            : 'بدون جلسه'}
         </div>
 
-        {/* ── Lab Values ────────────────────── */}
-        <div className="mb-4 flex flex-wrap gap-1.5">
-          <LabValueChip label="K" value={patient.last_k_value} />
-          <LabValueChip label="Hb" value={patient.last_hb_value} />
-        </div>
-
-        {/* ── Footer ────────────────────────── */}
-        <div className="flex items-center justify-between border-t border-slate-100 pt-3">
-          <div className="flex items-center gap-1 text-xs text-slate-400">
-            <Clock className="h-3 w-3" />
-            {patient.last_session_date ? (
-              <span>{formatRelativeTime(patient.last_session_date)}</span>
-            ) : (
-              <span>بدون جلسه</span>
-            )}
-          </div>
-
-          <motion.div
-            className="flex items-center gap-1 text-xs font-medium text-primary-500"
-            whileHover={{ x: -3 }}
-            transition={{ duration: 0.2 }}
-          >
-            <span>مشاهده پرونده</span>
-            <ChevronLeft className="h-3.5 w-3.5" />
-          </motion.div>
-        </div>
+        {patient.is_active ? (
+          <span className="flex items-center gap-1 text-[10px] text-emerald-600 font-medium">
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            فعال
+          </span>
+        ) : (
+          <span className="text-[10px] text-slate-400">غیرفعال</span>
+        )}
       </div>
     </motion.div>
-  );
+  )
+}
+
+function StatBox({
+  icon,
+  label,
+  value,
+  highlight = false,
+}: {
+  icon: React.ReactNode
+  label: string
+  value: string
+  highlight?: boolean
+}) {
+  return (
+    <div className="flex flex-col items-center rounded-xl bg-slate-50/60 p-2.5 text-center">
+      <span className="text-[#94A3B8] mb-1">{icon}</span>
+      <p className="text-[10px] text-[#94A3B8] mb-0.5">{label}</p>
+      <p
+        className={cn(
+          'text-xs font-semibold',
+          highlight ? 'text-amber-600' : 'text-[#0F172A]'
+        )}
+      >
+        {value}
+      </p>
+    </div>
+  )
 }

@@ -1,255 +1,179 @@
-// src/features/fluid-diet/components/DietPageView.tsx
-"use client";
+'use client'
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { Utensils, CheckCircle, ChevronDown } from "lucide-react";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { useLogDiet, useDietHistory } from "../hooks/useDietLog";
+import { useState } from 'react'
+import { motion } from 'motion/react'
+import { Utensils, Save } from 'lucide-react'
+import { useUpsertDietLog, useDietHistory } from '../hooks/useDietLog'
 import {
   DIET_ADHERENCE_LABELS,
   DIET_ADHERENCE_COLORS,
-  DIET_ADHERENCE_DOT,
-  type DietAdherence,
-} from "../types/fluid-diet.types";
-import { cn } from "@/lib/utils/cn";
-import { todayISO, formatPersianDate } from "@/lib/utils/date.utils";
+  DIET_CATEGORY_LABELS,
+} from '../types/fluid-diet.types'
+import type { DietAdherence } from '@/types/common.types'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { todayISO, formatDate } from '@/lib/utils/date.utils'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { pageVariants } from '@/lib/animation/variants'
 
-interface Props {
-  patientId: string;
+interface DietPageViewProps {
+  patientId: string
 }
 
-type DietKey =
-  | "potassium_adherence"
-  | "phosphorus_adherence"
-  | "protein_adherence"
-  | "sodium_adherence";
+type DietFields = {
+  potassium_adherence: DietAdherence
+  phosphorus_adherence: DietAdherence
+  protein_adherence: DietAdherence
+  sodium_adherence: DietAdherence
+}
 
-const DIET_QUESTIONS: Array<{
-  key: DietKey;
-  label: string;
-  emoji: string;
-  hint: string;
-}> = [
-  {
-    key: "potassium_adherence",
-    label: "محدودیت پتاسیم",
-    emoji: "🍌",
-    hint: "موز، گوجه، سیب‌زمینی، پرتقال",
-  },
-  {
-    key: "phosphorus_adherence",
-    label: "محدودیت فسفر",
-    emoji: "🥛",
-    hint: "لبنیات، آجیل، حبوبات",
-  },
-  {
-    key: "protein_adherence",
-    label: "مصرف پروتئین کافی",
-    emoji: "🥩",
-    hint: "گوشت، مرغ، ماهی، تخم‌مرغ",
-  },
-  {
-    key: "sodium_adherence",
-    label: "محدودیت نمک",
-    emoji: "🧂",
-    hint: "غذاهای شور، کنسرو، فست فود",
-  },
-];
+const DEFAULT_DIET: DietFields = {
+  potassium_adherence: 'good',
+  phosphorus_adherence: 'good',
+  protein_adherence: 'good',
+  sodium_adherence: 'good',
+}
 
-const ADHERENCE_OPTIONS: DietAdherence[] = ["good", "moderate", "poor"];
+const ADHERENCE_VALUES: DietAdherence[] = ['good', 'moderate', 'poor']
 
-export function DietPageView({ patientId }: Props) {
-  const [form, setForm] = useState<Record<DietKey, DietAdherence>>({
-    potassium_adherence: "good",
-    phosphorus_adherence: "good",
-    protein_adherence: "good",
-    sodium_adherence: "good",
-  });
-  const [notes, setNotes] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
+export function DietPageView({ patientId }: DietPageViewProps) {
+  const [form, setForm] = useState<DietFields>(DEFAULT_DIET)
+  const [notes, setNotes] = useState('')
 
-  const logDiet = useLogDiet(patientId);
-  const { data: history } = useDietHistory(patientId, { days: 7 });
+  const { mutateAsync, isPending } = useUpsertDietLog(patientId)
+  const { data: history, isLoading } = useDietHistory(patientId, { size: 7 })
 
-  async function handleSubmit() {
-    await logDiet.mutateAsync({
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await mutateAsync({
       log_date: todayISO(),
       ...form,
       notes: notes.trim() || undefined,
-    });
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 3000);
+    })
+    setForm(DEFAULT_DIET)
+    setNotes('')
   }
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      variants={pageVariants}
+      initial="hidden"
+      animate="visible"
+      className="space-y-5"
+    >
       <PageHeader
         title="رژیم غذایی"
-        description="وضعیت رعایت رژیم امروز را ثبت کنید"
-        icon={<Utensils className="w-5 h-5" />}
+        description="رعایت رژیم درمانی امروز را ثبت کنید"
       />
 
-      <div className="rounded-2xl border border-slate-100 bg-white p-6 space-y-6">
-        <div>
-          <h2 className="text-base font-semibold text-slate-800 mb-1">
-            رژیم امروز چطور بود؟
-          </h2>
-          <p className="text-sm text-slate-500">
-            برای هر مورد گزینه مناسب را انتخاب کنید
-          </p>
+      {/* Form */}
+      <form
+        onSubmit={handleSubmit}
+        className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm space-y-4"
+      >
+        <div className="flex items-center gap-2 mb-4">
+          <Utensils className="h-4 w-4 text-primary-500" />
+          <h3 className="text-sm font-semibold text-slate-800">ثبت امروز</h3>
         </div>
 
-        <div className="space-y-5">
-          {DIET_QUESTIONS.map((q) => (
-            <div key={q.key} className="space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">{q.emoji}</span>
-                <div>
-                  <p className="text-sm font-medium text-slate-700">
-                    {q.label}
-                  </p>
-                  <p className="text-xs text-slate-400">{q.hint}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                {ADHERENCE_OPTIONS.map((opt) => {
-                  const isSelected = form[q.key] === opt;
-                  return (
-                    <motion.button
-                      key={opt}
-                      onClick={() =>
-                        setForm((prev) => ({ ...prev, [q.key]: opt }))
+        {(Object.keys(DIET_CATEGORY_LABELS) as (keyof typeof DIET_CATEGORY_LABELS)[]).map(
+          (field) => (
+            <div key={field}>
+              <p className="text-xs font-medium text-slate-600 mb-2">
+                محدودیت {DIET_CATEGORY_LABELS[field]}
+              </p>
+              <div className="flex gap-2">
+                {ADHERENCE_VALUES.map((val) => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() =>
+                      setForm((prev) => ({ ...prev, [field]: val }))
+                    }
+                    className={`
+                      flex-1 rounded-xl border py-2.5 text-xs font-medium transition-all
+                      ${
+                        form[field] === val
+                          ? DIET_ADHERENCE_COLORS[val]
+                          : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300'
                       }
-                      whileTap={{ scale: 0.97 }}
-                      className={cn(
-                        "py-3 rounded-xl border-2 text-sm font-medium transition-all",
-                        isSelected
-                          ? DIET_ADHERENCE_COLORS[opt]
-                          : "border-slate-100 bg-white text-slate-500 hover:bg-slate-50"
-                      )}
-                    >
-                      {isSelected && (
-                        <CheckCircle className="w-3.5 h-3.5 inline ml-1" />
-                      )}
-                      {DIET_ADHERENCE_LABELS[opt]}
-                    </motion.button>
-                  );
-                })}
+                    `}
+                  >
+                    {DIET_ADHERENCE_LABELS[val]}
+                  </button>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
+          )
+        )}
 
-        {/* Notes */}
-        <div>
-          <label className="text-xs text-slate-500 mb-2 block">
-            توضیحات (اختیاری)
-          </label>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={3}
-            placeholder="اگر نکته‌ای درباره رژیم امروز دارید بنویسید..."
-            className="w-full rounded-xl border border-slate-200 p-3 text-sm 
-                       resize-none focus:outline-none focus:ring-2 
-                       focus:ring-sky-500/30 focus:border-sky-400"
-          />
-        </div>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={2}
+          placeholder="یادداشت (اختیاری)..."
+          className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:outline-none"
+        />
 
-        {/* Submit */}
-        <AnimatePresence mode="wait">
-          {submitted ? (
-            <motion.div
-              key="success"
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex items-center justify-center gap-2 py-3 
-                         rounded-xl bg-emerald-50 text-emerald-700"
-            >
-              <CheckCircle className="w-5 h-5" />
-              <span className="font-medium">رژیم ثبت شد ✓</span>
-            </motion.div>
-          ) : (
-            <button
-              onClick={handleSubmit}
-              disabled={logDiet.isPending}
-              className="w-full py-3 rounded-xl bg-sky-500 hover:bg-sky-600 
-                         text-white font-medium text-sm transition-colors 
-                         disabled:opacity-60"
-            >
-              {logDiet.isPending ? "در حال ثبت..." : "ثبت وضعیت رژیم"}
-            </button>
-          )}
-        </AnimatePresence>
-      </div>
+        <button
+          type="submit"
+          disabled={isPending}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-500 py-3 text-sm font-semibold text-white hover:bg-primary-600 disabled:opacity-50"
+        >
+          <Save className="h-4 w-4" />
+          {isPending ? 'در حال ثبت...' : 'ثبت رژیم امروز'}
+        </button>
+      </form>
 
       {/* History */}
-      <button
-        onClick={() => setShowHistory((p) => !p)}
-        className="w-full flex items-center justify-center gap-2 py-3 
-                   rounded-2xl border border-slate-200 bg-white 
-                   text-slate-600 text-sm hover:bg-slate-50 transition-colors"
-      >
-        تاریخچه رژیم
-        <motion.div
-          animate={{ rotate: showHistory ? 180 : 0 }}
-          transition={{ duration: 0.2 }}
-        >
-          <ChevronDown className="w-4 h-4" />
-        </motion.div>
-      </button>
+      <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+        <h3 className="text-sm font-semibold text-slate-800 mb-4">
+          ۷ روز اخیر
+        </h3>
 
-      <AnimatePresence>
-        {showHistory && history && history.length > 0 && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="rounded-2xl border border-slate-100 bg-white p-5 space-y-3">
-              {history.map((log) => (
-                <div
-                  key={log.id}
-                  className="space-y-2 pb-3 border-b border-slate-50 last:border-0 last:pb-0"
-                >
-                  <p className="text-xs font-medium text-slate-500">
-                    {formatPersianDate(log.log_date)}
-                  </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {DIET_QUESTIONS.map((q) => {
-                      const val = log[q.key];
-                      return (
-                        <div
-                          key={q.key}
-                          className="flex items-center gap-2"
-                        >
-                          <div
-                            className={cn(
-                              "w-2 h-2 rounded-full shrink-0",
-                              DIET_ADHERENCE_DOT[val]
-                            )}
-                          />
-                          <span className="text-xs text-slate-600">
-                            {q.label}:{" "}
-                            <span className="font-medium">
-                              {DIET_ADHERENCE_LABELS[val]}
-                            </span>
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </motion.div>
+        {isLoading && (
+          <div className="space-y-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-16 rounded-xl" />
+            ))}
+          </div>
         )}
-      </AnimatePresence>
-    </div>
-  );
+
+        {!isLoading && (history?.data?.length ?? 0) === 0 && (
+          <EmptyState title="تاریخچه‌ای ثبت نشده" size="sm" />
+        )}
+
+        {!isLoading &&
+          history?.data.map((log) => (
+            <div
+              key={log.id}
+              className="mb-3 last:mb-0 rounded-xl border border-slate-100 p-3"
+            >
+              <p className="text-xs text-slate-500 mb-2">
+                {formatDate(log.log_date)}
+              </p>
+              <div className="grid grid-cols-2 gap-1.5">
+                {(
+                  Object.keys(DIET_CATEGORY_LABELS) as (keyof typeof DIET_CATEGORY_LABELS)[]
+                ).map((field) => (
+                  <div key={field} className="flex items-center justify-between">
+                    <span className="text-[11px] text-slate-500">
+                      {DIET_CATEGORY_LABELS[field]}
+                    </span>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${DIET_ADHERENCE_COLORS[log[field]]}`}
+                    >
+                      {DIET_ADHERENCE_LABELS[log[field]]}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              {log.notes && (
+                <p className="mt-1.5 text-[11px] text-slate-400">{log.notes}</p>
+              )}
+            </div>
+          ))}
+      </div>
+    </motion.div>
+  )
 }
