@@ -1,129 +1,74 @@
-// src/app/(dashboard)/clinician/patients/[id]/sessions/page.tsx
 'use client'
 
-import { useState } from 'react'
-import { useParams } from 'next/navigation'
-import { motion, AnimatePresence } from 'motion/react'
-import { Plus, TrendingUp } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
-import { PageHeader } from '@/components/layout/PageHeader'
-import { Modal } from '@/components/ui/Modal'
-import { Tabs } from '@/components/ui/Tabs'
+import { use } from 'react'
+import { useRouter } from 'next/navigation'
+import { motion } from 'motion/react'
+import { Plus, Activity } from 'lucide-react'
+import { useSessions } from '@/features/dialysis-sessions/hooks/useSessions'
 import { SessionList } from '@/features/dialysis-sessions/components/SessionList'
-import { SessionForm } from '@/features/dialysis-sessions/components/SessionForm'
-import { WeightTrendChart } from '@/features/dialysis-sessions/components/WeightTrendChart'
-import { BPTrendChart } from '@/features/dialysis-sessions/components/BPTrendChart'
-import {
-  useSessions,
-  useCreateSession,
-  useWeightTrend,
-  useBPTrend,
-} from '@/features/dialysis-sessions/hooks/useSessions'
-import { usePatient } from '@/features/patients/hooks/usePatient'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { PageLoader } from '@/components/feedback/PageLoader'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { pageVariants } from '@/lib/animation/variants'
 
-export default function SessionsPage() {
-  const { id: patientId } = useParams<{ id: string }>()
-  const [showForm, setShowForm] = useState(false)
-  const [activeTab, setActiveTab] = useState<'list' | 'trends'>('list')
+export default function PatientSessionsPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = use(params)
+  const router = useRouter()
+  const { data, isLoading, isError } = useSessions(id)
 
-  const { data: patientData } = usePatient(patientId)
-  const { data: sessionsData, isLoading } = useSessions(patientId)
-  const { data: weightTrendData } = useWeightTrend(patientId)
-  const { data: bpTrendData } = useBPTrend(patientId)
-  const createSession = useCreateSession(patientId)
-
-  const patient = patientData
-  const sessions = sessionsData?.data ?? []
-  const weightChart = weightTrendData?.data?.weight_chart ?? []
-  const bpChart = bpTrendData?.data?.bp_chart ?? []
-
-  const handleSubmit = async (data: any) => {
-    await createSession.mutateAsync(data)
-    setShowForm(false)
-  }
+  const sessions = data?.data ?? []
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      variants={pageVariants}
+      initial="hidden"
+      animate="visible"
+      className="space-y-6"
+    >
       <PageHeader
         title="جلسات دیالیز"
-        description={patient ? `بیمار: ${patient.full_name}` : ''}
-        actions={
-          <Button
-            onClick={() => setShowForm(true)}
-            leftIcon={<Plus className="w-4 h-4" />}
+        description="تاریخچه جلسات دیالیز بیمار"
+        action={
+          <button
+            onClick={() =>
+              router.push(`/clinician/patients/${id}/sessions/new`)
+            }
+            className="flex items-center gap-2 rounded-xl bg-primary-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-600"
           >
+            <Plus className="h-4 w-4" />
             جلسه جدید
-          </Button>
+          </button>
         }
       />
 
-      {/* Tabs */}
-      <div className="flex gap-2">
-        {[
-          { id: 'list', label: 'لیست جلسات' },
-          { id: 'trends', label: 'نمودار روند' },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as 'list' | 'trends')}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-              activeTab === tab.id
-                ? 'bg-primary-500 text-white shadow-sm'
-                : 'bg-white text-text-secondary border border-primary-100 hover:border-primary-200'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {isLoading && <PageLoader />}
 
-      <AnimatePresence mode="wait">
-        {activeTab === 'list' ? (
-          <motion.div
-            key="list"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-          >
-            <SessionList
-              sessions={sessions}
-              patientId={patientId}
-              isLoading={isLoading}
-            />
-          </motion.div>
-        ) : (
-          <motion.div
-            key="trends"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="grid grid-cols-1 gap-5"
-          >
-            <WeightTrendChart
-              data={weightChart}
-              dryWeight={patient?.dry_weight}
-            />
-            <BPTrendChart data={bpChart} />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {isError && (
+        <div className="rounded-2xl border border-red-100 bg-red-50 p-6 text-center">
+          <p className="text-sm text-red-600">خطا در دریافت جلسات</p>
+        </div>
+      )}
 
-      {/* Modal فرم جلسه */}
-      <Modal
-        isOpen={showForm}
-        onClose={() => setShowForm(false)}
-        title="ثبت جلسه دیالیز"
-        size="lg"
-      >
-        <SessionForm
-          dryWeight={patient?.dry_weight ?? 70}
-          onSubmit={handleSubmit}
-          isLoading={createSession.isPending}
-          onCancel={() => setShowForm(false)}
+      {!isLoading && !isError && sessions.length === 0 && (
+        <EmptyState
+          icon={<Activity />}
+          title="جلسه‌ای ثبت نشده"
+          description="اولین جلسه دیالیز را ثبت کنید"
+          action={{
+            label: 'ثبت جلسه',
+            onClick: () =>
+              router.push(`/clinician/patients/${id}/sessions/new`),
+          }}
         />
-      </Modal>
-    </div>
+      )}
+
+      {!isLoading && !isError && sessions.length > 0 && (
+        <SessionList sessions={sessions} patientId={id} />
+      )}
+    </motion.div>
   )
 }

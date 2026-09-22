@@ -21,46 +21,55 @@ export type AlertCategory =
   | 'symptom'
   | 'fluid'
   | 'diet'
+  | 'combined'
   | 'session'
 
 // ─── Recommendation ─────────────────────────────────────────────────────
 export type RecommendationStatus = 'draft' | 'approved' | 'edited' | 'rejected'
 
-// ─── Symptom ────────────────────────────────────────────────────────────
+// ─── Symptom — دقیقاً مطابق app/shared/enums.py ─────────────────────────
 export type SymptomType =
   | 'shortness_of_breath'
   | 'dizziness'
   | 'access_site_pain'
   | 'muscle_cramp'
   | 'nausea'
+  | 'vomiting'
   | 'itching'
   | 'headache'
   | 'fatigue'
   | 'chest_pain'
   | 'swelling'
+  | 'loss_of_appetite'
+  | 'excessive_thirst'
+  | 'sleep_disturbance'
+  | 'other'
 
 export type SymptomSeverity = 'mild' | 'moderate' | 'severe'
 
 // ─── Diet ───────────────────────────────────────────────────────────────
 export type DietAdherence = 'good' | 'moderate' | 'poor'
 
-// ─── Lab ────────────────────────────────────────────────────────────────
+// ─── Lab — دقیقاً مطابق app/shared/enums.py ─────────────────────────────
 export type LabTestCode =
   | 'K'
   | 'Na'
   | 'Ca'
   | 'P'
+  | 'HCO3'
   | 'Hb'
   | 'Hct'
-  | 'Alb'
-  | 'CRP'
   | 'Ferritin'
   | 'TSAT'
+  | 'Alb'
+  | 'CRP'
   | 'PTH'
   | 'Urea'
   | 'Cr'
+  | 'Chol'
+  | 'TG'
 
-// ─── Session Events ──────────────────────────────────────────────────────
+// ─── Session Events — دقیقاً مطابق app/shared/enums.py ──────────────────
 export type SessionEvent =
   | 'hypotension'
   | 'muscle_cramp'
@@ -68,6 +77,8 @@ export type SessionEvent =
   | 'headache'
   | 'chest_pain'
   | 'access_problem'
+  | 'arrhythmia'
+  | 'allergic_reaction'
   | 'other'
 
 // ─── Vascular Access ────────────────────────────────────────────────────
@@ -76,32 +87,28 @@ export type VascularAccessType = 'fistula' | 'graft' | 'catheter'
 // ─── Gender ─────────────────────────────────────────────────────────────
 export type Gender = 'male' | 'female'
 
-// ─── Trend Result ───────────────────────────────────────────────────────
+// ─── Trend Result — snake_case مطابق پاسخ واقعی بک‌اند ─────────────────
 export interface TrendResult {
   direction: TrendDirection
   slope: number
-  isConcerning: boolean
-  interpretationFa: string
+  is_concerning: boolean
+  interpretation_fa: string
   values: number[]
   dates: string[]
-  changePercent: number
+  change_percent?: number
 }
-
-
-
-
 
 // ─── Risk Score ─────────────────────────────────────────────────────────
 export interface RiskScore {
   score: number
   level: AlertSeverity
-  contributingFactors: Array<{
+  contributing_factors: Array<{
     factor: string
     contribution: number
     detail: string
   }>
-  interpretationFa: string
-  calculatedAt: string
+  interpretation_fa: string
+  calculated_at: string
 }
 
 // ─── Pagination ─────────────────────────────────────────────────────────
@@ -152,15 +159,15 @@ export interface BPStatus {
 
 // ─── Lab Reference ──────────────────────────────────────────────────────
 export interface LabReferenceRange {
-  testCode: LabTestCode
+  test_code: LabTestCode
   unit: string
-  normalLow: number
-  normalHigh: number
-  criticalLow?: number
-  criticalHigh?: number
-  validMin: number
-  validMax: number
-  descriptionFa: string
+  normal_low: number
+  normal_high: number
+  critical_low?: number
+  critical_high?: number
+  valid_min: number
+  valid_max: number
+  description_fa: string
 }
 
 // ─── Select Option ──────────────────────────────────────────────────────
@@ -169,7 +176,6 @@ export interface SelectOption<T = string> {
   label: string
   disabled?: boolean
   description?: string
-  icon?: React.ReactNode
 }
 
 // ─── Toast ──────────────────────────────────────────────────────────────
@@ -182,7 +188,7 @@ export interface ToastOptions {
   duration?: number
 }
 
-// ─── Navigation ─────────────────────────────────────────────────────────
+// ─── Navigation (تعریف واحد) ─────────────────────────────────────────────
 export interface NavItem {
   label: string
   href: string
@@ -213,27 +219,17 @@ export interface ActionItem {
   description?: string
 }
 
-
-
-export interface NavItem {
-  label: string;
-  href: string;
-  icon: React.ComponentType<{ className?: string}>;
-  description?: string;
-  badge?: string | number;
-}
-
 export interface PaginatedResponse<T> {
-  success: boolean;
-  data: T[];
-  total: number;
-  page: number;
-  size: number;
-  pages: number;
+  success: boolean
+  data: T[]
+  total: number
+  page: number
+  size: number
+  pages: number
 }
 
 export interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
+  success: boolean
+  data: T
+  message?: string
 }

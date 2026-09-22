@@ -98,15 +98,6 @@ export function formatPersianMonth(dateStr: string | Date | null | undefined): s
   }
 }
 
-export function toISODate(dateStr: string): string {
-  try {
-    const date = parseISO(dateStr)
-    if (!isValid(date)) return dateStr
-    return date.toISOString().split('T')[0]
-  } catch {
-    return dateStr
-  }
-}
 
 export function getTodayISO(): string {
   return new Date().toISOString().split('T')[0]
@@ -122,6 +113,93 @@ export function daysBetween(from: string, to?: string): number {
 }
 
 
+
+
+/**
+ * تبدیل تاریخ به فاصله زمانی فارسی
+ * مثال: "۳ دقیقه پیش"، "۲ ساعت پیش"، "دیروز"
+ */
+export function formatDistanceToNow(dateStr: string): string {
+  try {
+    const date = new Date(dateStr)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffSeconds = Math.floor(diffMs / 1000)
+    const diffMinutes = Math.floor(diffSeconds / 60)
+    const diffHours = Math.floor(diffMinutes / 60)
+    const diffDays = Math.floor(diffHours / 24)
+
+    if (diffSeconds < 60) return 'همین الان'
+    if (diffMinutes < 60) return `${diffMinutes} دقیقه پیش`
+    if (diffHours < 24) return `${diffHours} ساعت پیش`
+    if (diffDays === 1) return 'دیروز'
+    if (diffDays < 7) return `${diffDays} روز پیش`
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} هفته پیش`
+    return `${Math.floor(diffDays / 30)} ماه پیش`
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * فرمت تاریخ میلادی به فارسی خوانا
+ */
+export function formatDate(dateStr: string): string {
+  try {
+    const date = new Date(dateStr)
+    return new Intl.DateTimeFormat('fa-IR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    }).format(date)
+  } catch {
+    return dateStr
+  }
+}
+
+/**
+ * فرمت تاریخ + ساعت به فارسی
+ */
+export function formatDateTime(dateStr: string): string {
+  try {
+    const date = new Date(dateStr)
+    return new Intl.DateTimeFormat('fa-IR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date)
+  } catch {
+    return dateStr
+  }
+}
+
+/**
+ * فرمت تاریخ کوتاه
+ */
+export function formatShortDate(dateStr: string): string {
+  try {
+    const date = new Date(dateStr)
+    return new Intl.DateTimeFormat('fa-IR', {
+      month: 'short',
+      day: 'numeric',
+    }).format(date)
+  } catch {
+    return dateStr
+  }
+}
+
+/**
+ * تبدیل تاریخ به ISO string برای API
+ */
+export function toISODate(date: Date): string {
+  return date.toISOString().split('T')[0]
+}
+
+/**
+ * امروز به فرمت ISO
+ */
 export function todayISO(): string {
-  return new Date().toISOString().split("T")[0];
+  return toISODate(new Date())
 }

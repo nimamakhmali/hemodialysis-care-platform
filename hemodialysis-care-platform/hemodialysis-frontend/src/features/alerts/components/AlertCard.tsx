@@ -1,157 +1,131 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { ChevronDown, Clock } from "lucide-react";
-import { cn } from "@/lib/utils/cn";
-import { formatRelativeTime } from "@/lib/utils/date.utils";
-import { AlertSeverityIcon } from "./AlertSeverityIcon";
-import { AlertBadge } from "./AlertBadge";
-import { AlertActionButtons } from "./AlertActionButtons";
-import type { Alert } from "../types/alert.types";
+import { motion } from 'motion/react'
+import { AlertTriangle, AlertCircle, Info, CheckCheck, X } from 'lucide-react'
+import type { Alert } from '../types/alert.types'
+import { formatDistanceToNow } from '@/lib/utils/date.utils'
 
 interface AlertCardProps {
-  alert: Alert;
-  index?: number;
+  alert: Alert
+  onAcknowledge?: (id: string) => void
+  onResolve?: (id: string) => void
+  compact?: boolean
 }
 
-function EvidenceItem({ label, value }: { label: string; value: unknown }) {
-  return (
-    <div className="flex items-center justify-between text-xs">
-      <span className="text-slate-500">{label}</span>
-      <span className="font-mono font-medium text-slate-700">{String(value)}</span>
-    </div>
-  );
+const SEVERITY_CONFIG = {
+  high: {
+    icon: AlertTriangle,
+    iconColor: 'text-red-600',
+    bg: 'bg-red-50 border-red-200',
+    badge: 'bg-red-100 text-red-700',
+    label: 'بحرانی',
+    dot: 'bg-red-500',
+  },
+  medium: {
+    icon: AlertCircle,
+    iconColor: 'text-amber-600',
+    bg: 'bg-amber-50 border-amber-200',
+    badge: 'bg-amber-100 text-amber-700',
+    label: 'متوسط',
+    dot: 'bg-amber-500',
+  },
+  low: {
+    icon: Info,
+    iconColor: 'text-sky-600',
+    bg: 'bg-sky-50 border-sky-200',
+    badge: 'bg-sky-100 text-sky-700',
+    label: 'کم',
+    dot: 'bg-sky-400',
+  },
 }
 
-const SEVERITY_BORDER: Record<string, string> = {
-  high: "border-l-red-400",
-  medium: "border-l-amber-400",
-  low: "border-l-blue-300",
-};
+const STATUS_LABEL = {
+  new: 'جدید',
+  acknowledged: 'بررسی‌شده',
+  resolved: 'بسته‌شده',
+}
 
-const STATUS_FA: Record<string, string> = {
-  new: "جدید",
-  acknowledged: "دیده‌شده",
-  resolved: "بسته‌شده",
-};
-
-export function AlertCard({ alert, index = 0 }: AlertCardProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  const isResolved = alert.status === "resolved";
+export function AlertCard({
+  alert,
+  onAcknowledge,
+  onResolve,
+  compact = false,
+}: AlertCardProps) {
+  const config = SEVERITY_CONFIG[alert.severity]
+  const isResolved = alert.status === 'resolved'
 
   return (
-    <motion.div
-      className={cn(
-        "overflow-hidden rounded-2xl border bg-white border-l-4 transition-all duration-200",
-        SEVERITY_BORDER[alert.severity],
-        isResolved ? "opacity-60" : "",
-        alert.severity === "high" && !isResolved
-          ? "shadow-[0_2px_16px_rgba(239,68,68,0.08)]"
-          : "shadow-sm hover:shadow-md"
-      )}
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05, duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-      layout
+    <div
+      className={`
+        rounded-2xl border p-5 transition-all duration-200
+        ${isResolved ? 'opacity-60' : ''}
+        ${config.bg}
+      `}
     >
-      {/* Main row */}
-      <div className="p-4">
-        <div className="flex items-start gap-3">
-          <AlertSeverityIcon severity={alert.severity} size="sm" />
-
-          <div className="min-w-0 flex-1">
-            {/* Header */}
-            <div className="mb-1 flex flex-wrap items-center gap-2">
-              <AlertBadge severity={alert.severity} />
-              {alert.category_fa && (
-                <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
-                  {alert.category_fa}
-                </span>
-              )}
-              <span className="rounded-md bg-slate-50 px-2 py-0.5 text-xs text-slate-400">
-                {STATUS_FA[alert.status] ?? alert.status}
-              </span>
-            </div>
-
-            {/* Title */}
-            <h4 className="text-sm font-semibold text-slate-800">{alert.title}</h4>
-
-            {/* Patient + Time */}
-            <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-400">
-              {alert.patient_name && (
-                <span className="font-medium text-slate-600">{alert.patient_name}</span>
-              )}
-              <span className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                {formatRelativeTime(alert.created_at)}
-              </span>
-            </div>
-          </div>
-
-          {/* Expand toggle */}
-          <motion.button
-            onClick={() => setIsExpanded((v) => !v)}
-            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg border border-slate-100 bg-slate-50 text-slate-400 hover:bg-slate-100 transition-colors"
-            animate={{ rotate: isExpanded ? 180 : 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <ChevronDown className="h-3.5 w-3.5" />
-          </motion.button>
+      <div className="flex items-start gap-4">
+        {/* Icon */}
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/70">
+          <config.icon className={`h-5 w-5 ${config.iconColor}`} />
         </div>
 
-        {/* Actions */}
-        {!isResolved && (
-          <div className="mt-3 border-t border-slate-50 pt-3">
-            <AlertActionButtons alert={alert} />
-          </div>
-        )}
-      </div>
-
-      {/* Expanded: explanation + evidence */}
-      <AnimatePresence>
-        {isExpanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="overflow-hidden"
-          >
-            <div className="space-y-3 border-t border-slate-100 bg-slate-50/60 p-4">
-              {/* Explanation */}
-              <div>
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                  توضیح بالینی
-                </p>
-                <p className="text-xs leading-relaxed text-slate-600">
-                  {alert.clinician_explanation}
-                </p>
-              </div>
-
-              {/* Evidence */}
-              {Object.keys(alert.evidence).length > 0 && (
-                <div>
-                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                    داده‌های شواهد
-                  </p>
-                  <div className="space-y-1 rounded-xl border border-slate-100 bg-white p-3">
-                    {Object.entries(alert.evidence).map(([k, v]) => (
-                      <EvidenceItem key={k} label={k} value={v} />
-                    ))}
-                  </div>
-                </div>
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2 flex-wrap mb-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span
+                className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${config.badge}`}
+              >
+                {config.label}
+              </span>
+              <span className="text-xs text-slate-500">
+                {STATUS_LABEL[alert.status]}
+              </span>
+              {alert.patient_name && (
+                <span className="text-xs font-medium text-slate-700">
+                  {alert.patient_name}
+                </span>
               )}
-
-              {/* Rule name */}
-              <p className="text-[10px] font-mono text-slate-300">
-                Rule: {alert.triggered_by_rule}
-              </p>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
-  );
+            <span className="text-[11px] text-slate-400 whitespace-nowrap">
+              {formatDistanceToNow(alert.created_at)}
+            </span>
+          </div>
+
+          <p className="text-sm font-medium text-slate-800 mb-1">
+            {alert.title}
+          </p>
+
+          {!compact && (
+            <p className="text-xs text-slate-600 leading-relaxed">
+              {alert.clinician_explanation}
+            </p>
+          )}
+
+          {/* Actions */}
+          {!isResolved && (onAcknowledge || onResolve) && (
+            <div className="flex items-center gap-2 mt-3">
+              {alert.status === 'new' && onAcknowledge && (
+                <button
+                  onClick={() => onAcknowledge(alert.id)}
+                  className="flex items-center gap-1.5 rounded-lg bg-white/80 border border-current/20 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-white transition-colors"
+                >
+                  <CheckCheck className="h-3.5 w-3.5" />
+                  دیدم
+                </button>
+              )}
+              {onResolve && (
+                <button
+                  onClick={() => onResolve(alert.id)}
+                  className="flex items-center gap-1.5 rounded-lg bg-white/80 border border-current/20 px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-white transition-colors"
+                >
+                  <X className="h-3.5 w-3.5" />
+                  بستن
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 }

@@ -1,4 +1,21 @@
-// src/features/dialysis-sessions/types/session.types.ts
+import type { SessionEvent, HealthStatus, TrendDirection } from '@/types/common.types'
+
+export interface SessionFormData {
+  session_date: string
+  session_start_time?: string
+  session_end_time?: string
+  duration_minutes?: number
+  pre_weight: number
+  post_weight?: number
+  bp_pre_systolic?: number
+  bp_pre_diastolic?: number
+  bp_during_systolic?: number
+  bp_during_diastolic?: number
+  bp_post_systolic?: number
+  bp_post_diastolic?: number
+  intradialytic_events?: SessionEvent[]
+  notes?: string
+}
 
 export interface DialysisSession {
   id: string
@@ -7,26 +24,23 @@ export interface DialysisSession {
   session_start_time?: string
   session_end_time?: string
   duration_minutes?: number
-
   pre_weight: number
   post_weight?: number
   dry_weight_at_session: number
   weight_gain?: number
-  weight_gain_percent?: number
   uf_volume?: number
-
+  idwg_percent?: number
   bp_pre_systolic?: number
   bp_pre_diastolic?: number
   bp_during_systolic?: number
   bp_during_diastolic?: number
   bp_post_systolic?: number
   bp_post_diastolic?: number
-
-  had_intradialytic_hypotension?: boolean
-  intradialytic_events?: string[]
+  intradialytic_events?: SessionEvent[]
   notes?: string
-  recorded_by?: string
+  recorded_by: string
   created_at: string
+  updated_at: string
 }
 
 export interface WeightTrendPoint {
@@ -34,44 +48,28 @@ export interface WeightTrendPoint {
   pre_weight: number
   post_weight?: number
   dry_weight: number
-  weight_gain_kg?: number
-  weight_gain_percent?: number
+  weight_gain?: number
+  idwg_percent?: number
+  status: HealthStatus
+}
+
+export interface WeightTrendData {
+  sessions: WeightTrendPoint[]
+  average_idwg_percent: number
+  trend: TrendDirection
+  concerning: boolean
 }
 
 export interface BPTrendPoint {
   date: string
-  pre_systolic?: number
-  pre_diastolic?: number
-  during_systolic?: number
-  during_diastolic?: number
-  post_systolic?: number
-  post_diastolic?: number
-  had_idh?: boolean
+  pre: { systolic?: number; diastolic?: number }
+  during: { systolic?: number; diastolic?: number }
+  post: { systolic?: number; diastolic?: number }
+  status: HealthStatus
 }
 
-export interface SessionFormData {
-  session_date: string
-  session_start_time?: string
-  session_end_time?: string
-  pre_weight: number
-  post_weight?: number
-  bp_pre_systolic?: number
-  bp_pre_diastolic?: number
-  bp_during_systolic?: number
-  bp_during_diastolic?: number
-  bp_post_systolic?: number
-  bp_post_diastolic?: number
-  intradialytic_events?: string[]
-  notes?: string
-}
-
-export type WeightStatus = 'ok' | 'warning' | 'critical' | 'unknown'
-export type BPStatus = 'ok' | 'warning' | 'critical' | 'unknown'
-
-export interface IDWGResult {
-  kg: number
-  percent: number
-  status: WeightStatus
-  label: string
-  color: string
+export interface BPTrendData {
+  sessions: BPTrendPoint[]
+  trend: TrendDirection
+  average_pre_systolic: number
 }

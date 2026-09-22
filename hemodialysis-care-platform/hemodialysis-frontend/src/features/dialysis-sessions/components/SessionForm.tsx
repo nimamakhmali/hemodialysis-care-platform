@@ -1,518 +1,378 @@
-// src/features/dialysis-sessions/components/SessionForm.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { motion, AnimatePresence } from 'motion/react'
-import {
-  Scale, Activity, AlertTriangle,
-  CheckCircle, Clock, Droplets, X,
-} from 'lucide-react'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { NumberInput } from '@/components/ui/NumberInput'
-import { IDWGGauge } from './IDWGGauge'
-import { calculateIDWG, SESSION_EVENTS_FA } from '@/lib/utils/medical.utils'
-import { cn } from '@/lib/utils/cn'
+import { useState } from 'react'
+import { motion } from 'motion/react'
+import { Save, X, AlertTriangle } from 'lucide-react'
+import type { SessionFormData } from '../types/session.types'
+import type { SessionEvent } from '@/types/common.types'
+import { todayISO } from '@/lib/utils/date.utils'
 
-// ---- Zod Schema ----
-const sessionSchema = z
-  .object({
-    session_date: z.string().min(1, 'تاریخ الزامی است'),
-    session_start_time: z.string().optional(),
-    session_end_time: z.string().optional(),
-    pre_weight: z
-      .number({ required_error: 'وزن قبل الزامی است' })
-      .min(20, 'وزن باید بیشتر از ۲۰ باشد')
-      .max(250, 'وزن باید کمتر از ۲۵۰ باشد'),
-    post_weight: z.number().min(20).max(250).optional(),
-    bp_pre_systolic: z.number().min(60).max(250).optional(),
-    bp_pre_diastolic: z.number().min(30).max(150).optional(),
-    bp_during_systolic: z.number().min(60).max(250).optional(),
-    bp_during_diastolic: z.number().min(30).max(150).optional(),
-    bp_post_systolic: z.number().min(60).max(250).optional(),
-    bp_post_diastolic: z.number().min(30).max(150).optional(),
-    intradialytic_events: z.array(z.string()).optional(),
-    notes: z.string().max(1000).optional(),
-  })
-  .refine(
-    (d) => {
-      if (d.bp_pre_systolic && d.bp_pre_diastolic)
-        return d.bp_pre_systolic > d.bp_pre_diastolic
-      return true
-    },
-    { message: 'سیستولیک باید بزرگتر از دیاستولیک باشد', path: ['bp_pre_systolic'] }
-  )
-  .refine(
-    (d) => {
-      if (d.bp_during_systolic && d.bp_during_diastolic)
-        return d.bp_during_systolic > d.bp_during_diastolic
-      return true
-    },
-    { message: 'سیستولیک باید بزرگتر از دیاستولیک باشد', path: ['bp_during_systolic'] }
-  )
-  .refine(
-    (d) => {
-      if (d.bp_post_systolic && d.bp_post_diastolic)
-        return d.bp_post_systolic > d.bp_post_diastolic
-      return true
-    },
-    { message: 'سیستولیک باید بزرگتر از دیاستولیک باشد', path: ['bp_post_systolic'] }
-  )
+const SESSION_EVENTS: { value: SessionEvent; label: string }[] = [
+  { value: 'hypotension', label: 'افت فشار خون' },
+  { value: 'muscle_cramp', label: 'گرفتگی عضلانی' },
+  { value: 'nausea_vomiting', label: 'تهوع/استفراغ' },
+  { value: 'headache', label: 'سردرد' },
+  { value: 'chest_pain', label: 'درد قفسه سینه' },
+  { value: 'access_problem', label: 'مشکل در محل دسترسی' },
+  { value: 'arrhythmia', label: 'آریتمی' },
+  { value: 'allergic_reaction', label: 'واکنش آلرژیک' },
+  { value: 'other', label: 'سایر' },
+]
 
-type SessionFormValues = z.infer<typeof sessionSchema>
-
-interface Props {
-  dryWeight: number
-  onSubmit: (data: SessionFormValues) => Promise<void>
-  isLoading?: boolean
-  onCancel?: () => void
+interface SessionFormProps {
+  initialData?: Partial<SessionFormData>
+  onSubmit: (data: SessionFormData) => Promise<void>
+  onCancel: () => void
+  isSubmitting: boolean
 }
 
-// ---- کامپوننت BP Row ----
-function BPRow({
-  label,
-  sysField,
-  diaField,
-  register,
-  errors,
-  watch,
-}: {
-  label: string
-  sysField: any
-  diaField: any
-  register: any
-  errors: any
-  watch: any
-}) {
-  const sys = watch(sysField)
-  const dia = watch(diaField)
-
-  const isInvalid = sys && dia && sys <= dia
-
-  return (
-    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-      <div>
-        <label className="text-xs text-text-muted mb-1 block">
-          {label} — سیستولیک
-        </label>
-        <NumberInput
-          {...register(sysField, { valueAsNumber: true })}
-          unit="mmHg"
-          placeholder="120"
-          error={errors[sysField]?.message}
-          className={isInvalid ? 'border-red-300' : ''}
-        />
-      </div>
-      <span className="text-text-muted mt-5">/</span>
-      <div>
-        <label className="text-xs text-text-muted mb-1 block">دیاستولیک</label>
-        <NumberInput
-          {...register(diaField, { valueAsNumber: true })}
-          unit="mmHg"
-          placeholder="80"
-        />
-      </div>
-    </div>
-  )
-}
-
-// ---- کامپوننت اصلی ----
-export function SessionForm({ dryWeight, onSubmit, isLoading, onCancel }: Props) {
-  const [selectedEvents, setSelectedEvents] = useState<string[]>([])
-  const [step, setStep] = useState<1 | 2 | 3>(1)
-
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    formState: { errors },
-  } = useForm<SessionFormValues>({
-    resolver: zodResolver(sessionSchema),
-    defaultValues: {
-      session_date: new Date().toISOString().split('T')[0],
-      intradialytic_events: [],
-    },
+export function SessionForm({
+  initialData,
+  onSubmit,
+  onCancel,
+  isSubmitting,
+}: SessionFormProps) {
+  const [form, setForm] = useState<SessionFormData>({
+    session_date: todayISO(),
+    pre_weight: 0,
+    ...initialData,
   })
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
-  const preWeight = watch('pre_weight')
-  const postWeight = watch('post_weight')
-  const startTime = watch('session_start_time')
-  const endTime = watch('session_end_time')
-
-  // محاسبه IDWG
-  const idwg = preWeight && dryWeight
-    ? calculateIDWG(preWeight, dryWeight)
-    : null
-
-  // مدت جلسه
-  const durationMinutes = (() => {
-    if (!startTime || !endTime) return null
-    const [sh, sm] = startTime.split(':').map(Number)
-    const [eh, em] = endTime.split(':').map(Number)
-    const mins = (eh * 60 + em) - (sh * 60 + sm)
-    return mins > 0 ? mins : null
-  })()
-
-  const toggleEvent = (event: string) => {
-    const next = selectedEvents.includes(event)
-      ? selectedEvents.filter((e) => e !== event)
-      : [...selectedEvents, event]
-    setSelectedEvents(next)
-    setValue('intradialytic_events', next)
+  const set = (key: keyof SessionFormData, value: unknown) => {
+    setForm((prev) => ({ ...prev, [key]: value }))
+    setErrors((prev) => ({ ...prev, [key]: '' }))
   }
 
-  const handleFormSubmit = async (data: SessionFormValues) => {
-    await onSubmit({ ...data, intradialytic_events: selectedEvents })
+  const toggleEvent = (event: SessionEvent) => {
+    const current = form.intradialytic_events ?? []
+    const updated = current.includes(event)
+      ? current.filter((e) => e !== event)
+      : [...current, event]
+    set('intradialytic_events', updated)
   }
 
-  const steps = [
-    { id: 1, label: 'وزن', icon: Scale },
-    { id: 2, label: 'فشار خون', icon: Activity },
-    { id: 3, label: 'رخدادها', icon: AlertTriangle },
-  ]
+  const validate = (): boolean => {
+    const newErrors: Record<string, string> = {}
+
+    if (!form.session_date) {
+      newErrors.session_date = 'تاریخ جلسه الزامی است'
+    }
+    if (!form.pre_weight || form.pre_weight <= 0) {
+      newErrors.pre_weight = 'وزن قبل از دیالیز الزامی است'
+    }
+    if (form.pre_weight && (form.pre_weight < 20 || form.pre_weight > 250)) {
+      newErrors.pre_weight = 'وزن باید بین ۲۰ تا ۲۵۰ کیلوگرم باشد'
+    }
+    if (form.post_weight && form.pre_weight && form.post_weight > form.pre_weight) {
+      newErrors.post_weight = 'وزن بعد نمی‌تواند بیشتر از وزن قبل باشد'
+    }
+    if (
+      form.bp_pre_systolic &&
+      form.bp_pre_diastolic &&
+      form.bp_pre_systolic <= form.bp_pre_diastolic
+    ) {
+      newErrors.bp_pre = 'فشار سیستولیک باید بیشتر از دیاستولیک باشد'
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!validate()) return
+
+    const payload: SessionFormData = {
+      ...form,
+      pre_weight: Number(form.pre_weight),
+      post_weight: form.post_weight ? Number(form.post_weight) : undefined,
+      duration_minutes: form.duration_minutes
+        ? Number(form.duration_minutes)
+        : undefined,
+    }
+
+    await onSubmit(payload)
+  }
+
+  const hasDangerEvent = form.intradialytic_events?.includes('chest_pain')
 
   return (
-    <div className="bg-white rounded-2xl border border-primary-100 shadow-azure overflow-hidden">
-      {/* Step Indicator */}
-      <div className="border-b border-primary-50 px-6 py-4">
-        <div className="flex items-center gap-0">
-          {steps.map((s, idx) => {
-            const Icon = s.icon
-            const isActive = s.id === step
-            const isDone = s.id < step
+    <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+      {/* Danger warning */}
+      {hasDangerEvent && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3"
+        >
+          <AlertTriangle className="h-5 w-5 shrink-0 text-red-500" />
+          <p className="text-sm text-red-700">
+            درد قفسه سینه ثبت شده — اطمینان حاصل کنید بیمار ارزیابی شده است.
+          </p>
+        </motion.div>
+      )}
+
+      {/* Section: اطلاعات پایه */}
+      <SectionCard title="اطلاعات پایه جلسه">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="تاریخ جلسه *" error={errors.session_date}>
+            <input
+              type="date"
+              value={form.session_date}
+              onChange={(e) => set('session_date', e.target.value)}
+              max={todayISO()}
+              className={inputCls(!!errors.session_date)}
+              required
+            />
+          </Field>
+          <Field label="مدت جلسه (دقیقه)">
+            <input
+              type="number"
+              value={form.duration_minutes ?? ''}
+              onChange={(e) =>
+                set('duration_minutes', e.target.value ? Number(e.target.value) : undefined)
+              }
+              min={60}
+              max={480}
+              placeholder="مثلاً ۲۴۰"
+              className={inputCls(false)}
+            />
+          </Field>
+        </div>
+      </SectionCard>
+
+      {/* Section: وزن */}
+      <SectionCard title="وزن">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="وزن قبل از دیالیز (kg) *" error={errors.pre_weight}>
+            <input
+              type="number"
+              step="0.1"
+              value={form.pre_weight || ''}
+              onChange={(e) => set('pre_weight', Number(e.target.value))}
+              placeholder="مثلاً ۸۳.۵"
+              className={inputCls(!!errors.pre_weight)}
+              required
+            />
+          </Field>
+          <Field label="وزن بعد از دیالیز (kg)" error={errors.post_weight}>
+            <input
+              type="number"
+              step="0.1"
+              value={form.post_weight ?? ''}
+              onChange={(e) =>
+                set('post_weight', e.target.value ? Number(e.target.value) : undefined)
+              }
+              placeholder="مثلاً ۸۰.۰"
+              className={inputCls(!!errors.post_weight)}
+            />
+          </Field>
+        </div>
+      </SectionCard>
+
+      {/* Section: فشار خون */}
+      <SectionCard title="فشار خون">
+        <div className="space-y-4">
+          {/* Before */}
+          <div>
+            <p className="text-xs font-medium text-slate-500 mb-2">قبل از دیالیز</p>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="سیستولیک" error={errors.bp_pre}>
+                <input
+                  type="number"
+                  value={form.bp_pre_systolic ?? ''}
+                  onChange={(e) =>
+                    set('bp_pre_systolic', e.target.value ? Number(e.target.value) : undefined)
+                  }
+                  placeholder="مثلاً ۱۳۰"
+                  className={inputCls(!!errors.bp_pre)}
+                />
+              </Field>
+              <Field label="دیاستولیک">
+                <input
+                  type="number"
+                  value={form.bp_pre_diastolic ?? ''}
+                  onChange={(e) =>
+                    set('bp_pre_diastolic', e.target.value ? Number(e.target.value) : undefined)
+                  }
+                  placeholder="مثلاً ۸۰"
+                  className={inputCls(false)}
+                />
+              </Field>
+            </div>
+          </div>
+
+          {/* During */}
+          <div>
+            <p className="text-xs font-medium text-slate-500 mb-2">حین دیالیز</p>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="سیستولیک">
+                <input
+                  type="number"
+                  value={form.bp_during_systolic ?? ''}
+                  onChange={(e) =>
+                    set('bp_during_systolic', e.target.value ? Number(e.target.value) : undefined)
+                  }
+                  placeholder="مثلاً ۱۱۰"
+                  className={inputCls(false)}
+                />
+              </Field>
+              <Field label="دیاستولیک">
+                <input
+                  type="number"
+                  value={form.bp_during_diastolic ?? ''}
+                  onChange={(e) =>
+                    set('bp_during_diastolic', e.target.value ? Number(e.target.value) : undefined)
+                  }
+                  placeholder="مثلاً ۷۰"
+                  className={inputCls(false)}
+                />
+              </Field>
+            </div>
+          </div>
+
+          {/* After */}
+          <div>
+            <p className="text-xs font-medium text-slate-500 mb-2">بعد از دیالیز</p>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="سیستولیک">
+                <input
+                  type="number"
+                  value={form.bp_post_systolic ?? ''}
+                  onChange={(e) =>
+                    set('bp_post_systolic', e.target.value ? Number(e.target.value) : undefined)
+                  }
+                  placeholder="مثلاً ۱۲۰"
+                  className={inputCls(false)}
+                />
+              </Field>
+              <Field label="دیاستولیک">
+                <input
+                  type="number"
+                  value={form.bp_post_diastolic ?? ''}
+                  onChange={(e) =>
+                    set('bp_post_diastolic', e.target.value ? Number(e.target.value) : undefined)
+                  }
+                  placeholder="مثلاً ۷۵"
+                  className={inputCls(false)}
+                />
+              </Field>
+            </div>
+          </div>
+        </div>
+      </SectionCard>
+
+      {/* Section: رخدادها */}
+      <SectionCard title="رخدادهای حین جلسه">
+        <div className="flex flex-wrap gap-2">
+          {SESSION_EVENTS.map(({ value, label }) => {
+            const active = form.intradialytic_events?.includes(value)
+            const isDanger = value === 'chest_pain'
             return (
-              <div key={s.id} className="flex items-center">
-                <button
-                  type="button"
-                  onClick={() => setStep(s.id as 1 | 2 | 3)}
-                  className="flex items-center gap-2"
-                >
-                  <motion.div
-                    animate={{
-                      background: isDone
-                        ? '#22C55E'
-                        : isActive
-                        ? '#0EA5E9'
-                        : '#E0F2FE',
-                    }}
-                    className="w-8 h-8 rounded-full flex items-center justify-center"
-                  >
-                    <Icon
-                      className="w-4 h-4"
-                      style={{ color: isActive || isDone ? '#fff' : '#64748B' }}
-                    />
-                  </motion.div>
-                  <span
-                    className={cn(
-                      'text-sm font-medium',
-                      isActive ? 'text-primary-600' : 'text-text-muted'
-                    )}
-                  >
-                    {s.label}
-                  </span>
-                </button>
-                {idx < steps.length - 1 && (
-                  <div className="w-10 h-px bg-primary-100 mx-3" />
-                )}
-              </div>
+              <button
+                key={value}
+                type="button"
+                onClick={() => toggleEvent(value)}
+                className={`
+                  rounded-xl px-3 py-1.5 text-xs font-medium
+                  border transition-all duration-150
+                  ${
+                    active
+                      ? isDanger
+                        ? 'border-red-300 bg-red-100 text-red-700'
+                        : 'border-primary-300 bg-primary-50 text-primary-700'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                  }
+                `}
+              >
+                {label}
+              </button>
             )
           })}
         </div>
+      </SectionCard>
+
+      {/* Section: یادداشت */}
+      <SectionCard title="یادداشت">
+        <textarea
+          value={form.notes ?? ''}
+          onChange={(e) => set('notes', e.target.value || undefined)}
+          rows={3}
+          placeholder="یادداشت اضافی درباره این جلسه..."
+          className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-primary-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-100 resize-none"
+        />
+      </SectionCard>
+
+      {/* Actions */}
+      <div className="flex items-center justify-end gap-3 pt-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={isSubmitting}
+          className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+        >
+          <X className="h-4 w-4" />
+          انصراف
+        </button>
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="flex items-center gap-2 rounded-xl bg-primary-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-600 disabled:opacity-60"
+        >
+          <Save className="h-4 w-4" />
+          {isSubmitting ? 'در حال ذخیره...' : 'ذخیره جلسه'}
+        </button>
       </div>
+    </form>
+  )
+}
 
-      <form onSubmit={handleSubmit(handleFormSubmit)}>
-        <div className="p-6">
-          <AnimatePresence mode="wait">
+// ─── Helpers ──────────────────────────────────────────────────────────────
 
-            {/* ---- Step 1: وزن ---- */}
-            {step === 1 && (
-              <motion.div
-                key="step1"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-5"
-              >
-                {/* تاریخ و زمان */}
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="col-span-1">
-                    <label className="text-xs text-text-muted mb-1 block">
-                      تاریخ جلسه *
-                    </label>
-                    <Input
-                      type="date"
-                      {...register('session_date')}
-                      error={errors.session_date?.message}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-text-muted mb-1 block">
-                      ساعت شروع
-                    </label>
-                    <Input type="time" {...register('session_start_time')} />
-                  </div>
-                  <div>
-                    <label className="text-xs text-text-muted mb-1 block">
-                      ساعت پایان
-                    </label>
-                    <Input type="time" {...register('session_end_time')} />
-                  </div>
-                </div>
-
-                {/* مدت محاسبه‌شده */}
-                <AnimatePresence>
-                  {durationMinutes && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="flex items-center gap-2 text-sm text-primary-600 bg-primary-50 rounded-xl px-4 py-2"
-                    >
-                      <Clock className="w-4 h-4" />
-                      <span>مدت جلسه: {durationMinutes} دقیقه</span>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* وزن */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs text-text-muted mb-1 block">
-                      وزن قبل از دیالیز *
-                    </label>
-                    <NumberInput
-                      {...register('pre_weight', { valueAsNumber: true })}
-                      unit="kg"
-                      placeholder="0.0"
-                      error={errors.pre_weight?.message}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-text-muted mb-1 block">
-                      وزن بعد از دیالیز
-                    </label>
-                    <NumberInput
-                      {...register('post_weight', { valueAsNumber: true })}
-                      unit="kg"
-                      placeholder="0.0"
-                    />
-                  </div>
-                </div>
-
-                {/* IDWG Live */}
-                <AnimatePresence>
-                  {idwg && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      className="bg-surface-primary rounded-2xl p-4"
-                    >
-                      <p className="text-xs font-medium text-text-muted text-center mb-3">
-                        محاسبه بلادرنگ IDWG
-                      </p>
-                      <IDWGGauge
-                        percent={idwg.percent}
-                        kg={idwg.kg}
-                        dryWeight={dryWeight}
-                      />
-
-                      {idwg.status === 'critical' && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="mt-3 flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl p-3"
-                        >
-                          <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-                          <p className="text-xs text-red-700">
-                            IDWG بیش از ۵٪ — این مقدار نیاز به توجه فوری دارد
-                          </p>
-                        </motion.div>
-                      )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* UF */}
-                {postWeight && preWeight && (
-                  <div className="flex items-center gap-2 text-sm bg-cyan-50 rounded-xl px-4 py-2">
-                    <Droplets className="w-4 h-4 text-cyan-500" />
-                    <span className="text-cyan-700">
-                      حجم UF تخمینی: {(preWeight - postWeight).toFixed(2)} L
-                    </span>
-                  </div>
-                )}
-              </motion.div>
-            )}
-
-            {/* ---- Step 2: فشار خون ---- */}
-            {step === 2 && (
-              <motion.div
-                key="step2"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-5"
-              >
-                <div className="space-y-4">
-                  <div className="bg-surface-primary rounded-xl p-4">
-                    <p className="text-sm font-medium text-text-primary mb-3">
-                      فشار خون قبل از دیالیز
-                    </p>
-                    <BPRow
-                      label="قبل"
-                      sysField="bp_pre_systolic"
-                      diaField="bp_pre_diastolic"
-                      register={register}
-                      errors={errors}
-                      watch={watch}
-                    />
-                  </div>
-
-                  <div className="bg-surface-primary rounded-xl p-4">
-                    <p className="text-sm font-medium text-text-primary mb-3">
-                      فشار خون حین دیالیز
-                    </p>
-                    <BPRow
-                      label="حین"
-                      sysField="bp_during_systolic"
-                      diaField="bp_during_diastolic"
-                      register={register}
-                      errors={errors}
-                      watch={watch}
-                    />
-                  </div>
-
-                  <div className="bg-surface-primary rounded-xl p-4">
-                    <p className="text-sm font-medium text-text-primary mb-3">
-                      فشار خون بعد از دیالیز
-                    </p>
-                    <BPRow
-                      label="بعد"
-                      sysField="bp_post_systolic"
-                      diaField="bp_post_diastolic"
-                      register={register}
-                      errors={errors}
-                      watch={watch}
-                    />
-                  </div>
-                </div>
-
-                {/* راهنما */}
-                <div className="bg-blue-50 rounded-xl p-3">
-                  <p className="text-xs text-blue-700">
-                    💡 اگر فشار خون حین دیالیز ثبت نشده، فقط قبل و بعد را وارد کنید.
-                  </p>
-                </div>
-              </motion.div>
-            )}
-
-            {/* ---- Step 3: رخدادها ---- */}
-            {step === 3 && (
-              <motion.div
-                key="step3"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-5"
-              >
-                <div>
-                  <p className="text-sm font-medium text-text-primary mb-3">
-                    رخدادهای حین دیالیز
-                  </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {Object.entries(SESSION_EVENTS_FA).map(([key, label]) => {
-                      const isSelected = selectedEvents.includes(key)
-                      const isDanger = key === 'chest_pain'
-                      return (
-                        <motion.button
-                          key={key}
-                          type="button"
-                          onClick={() => toggleEvent(key)}
-                          whileTap={{ scale: 0.97 }}
-                          className={cn(
-                            'flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm',
-                            'border transition-all duration-200 text-right',
-                            isSelected && !isDanger
-                              ? 'bg-amber-50 border-amber-300 text-amber-700'
-                              : isSelected && isDanger
-                              ? 'bg-red-50 border-red-300 text-red-700'
-                              : 'bg-white border-primary-100 text-text-secondary hover:border-primary-200'
-                          )}
-                        >
-                          {isSelected
-                            ? <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                            : <div className="w-4 h-4 rounded border border-current flex-shrink-0" />
-                          }
-                          <span>{label}</span>
-                        </motion.button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* یادداشت */}
-                <div>
-                  <label className="text-xs text-text-muted mb-1 block">
-                    یادداشت (اختیاری)
-                  </label>
-                  <textarea
-                    {...register('notes')}
-                    rows={3}
-                    className="w-full rounded-xl border border-primary-100 px-4 py-3 text-sm
-                               focus:outline-none focus:ring-2 focus:ring-primary-200
-                               text-right font-vazir resize-none"
-                    placeholder="یادداشت کلینیکی..."
-                  />
-                </div>
-              </motion.div>
-            )}
-
-          </AnimatePresence>
-        </div>
-
-        {/* Footer */}
-        <div className="border-t border-primary-50 px-6 py-4 flex items-center justify-between">
-          <div className="flex gap-2">
-            {step > 1 && (
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setStep((s) => (s - 1) as 1 | 2 | 3)}
-              >
-                قبلی
-              </Button>
-            )}
-            {onCancel && (
-              <Button type="button" variant="ghost" onClick={onCancel}>
-                انصراف
-              </Button>
-            )}
-          </div>
-
-          <div className="flex gap-2">
-            {step < 3 ? (
-              <Button
-                type="button"
-                onClick={() => setStep((s) => (s + 1) as 1 | 2 | 3)}
-              >
-                بعدی
-              </Button>
-            ) : (
-              <Button type="submit" isLoading={isLoading}>
-                ثبت جلسه
-              </Button>
-            )}
-          </div>
-        </div>
-      </form>
+function SectionCard({
+  title,
+  children,
+}: {
+  title: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+      <h3 className="mb-4 text-sm font-semibold text-slate-700">{title}</h3>
+      {children}
     </div>
   )
+}
+
+function Field({
+  label,
+  error,
+  children,
+}: {
+  label: string
+  error?: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="space-y-1">
+      <label className="block text-xs font-medium text-slate-600">{label}</label>
+      {children}
+      {error && <p className="text-xs text-red-500">{error}</p>}
+    </div>
+  )
+}
+
+function inputCls(hasError: boolean): string {
+  return `
+    w-full rounded-xl border px-3 py-2.5 text-sm text-slate-800
+    placeholder:text-slate-400
+    focus:outline-none focus:ring-2
+    transition-colors
+    ${
+      hasError
+        ? 'border-red-300 bg-red-50 focus:border-red-400 focus:ring-red-100'
+        : 'border-slate-200 bg-slate-50/50 focus:border-primary-300 focus:bg-white focus:ring-primary-100'
+    }
+  `
 }

@@ -1,149 +1,82 @@
-// src/features/dashboard/components/clinician/RecentActivityFeed.tsx
-"use client";
+'use client'
 
-import { motion } from "motion/react";
+import { motion } from 'motion/react'
 import {
-  Activity,
   FlaskConical,
-  Thermometer,
-  Droplets,
-  Utensils,
-  Bell,
+  Activity,
+  Smile,
   MessageSquare,
-  Sparkles,
-} from "lucide-react";
-import type { RecentActivity } from "../../types/clinician-dashboard.types";
-import { cn } from "@/lib/utils/cn";
-import { formatRelativeTime } from "@/lib/utils/date.utils";
-import { getSeverityColor } from "@/lib/utils/medical.utils";
+  Clock,
+} from 'lucide-react'
+import type { RecentActivity } from '../../types/clinician-dashboard.types'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { formatDistanceToNow } from '@/lib/utils/date.utils'
 
-const TYPE_CONFIG = {
-  session: {
-    icon: Activity,
-    label: "جلسه دیالیز",
-    color: "text-sky-600",
-    bg: "bg-sky-50",
-  },
-  lab: {
-    icon: FlaskConical,
-    label: "آزمایش",
-    color: "text-violet-600",
-    bg: "bg-violet-50",
-  },
-  symptom: {
-    icon: Thermometer,
-    label: "علائم",
-    color: "text-rose-600",
-    bg: "bg-rose-50",
-  },
-  fluid: {
-    icon: Droplets,
-    label: "مایعات",
-    color: "text-cyan-600",
-    bg: "bg-cyan-50",
-  },
-  diet: {
-    icon: Utensils,
-    label: "رژیم",
-    color: "text-emerald-600",
-    bg: "bg-emerald-50",
-  },
-  alert: {
-    icon: Bell,
-    label: "هشدار",
-    color: "text-amber-600",
-    bg: "bg-amber-50",
-  },
-  recommendation: {
-    icon: Sparkles,
-    label: "توصیه",
-    color: "text-amber-600",
-    bg: "bg-amber-50",
-  },
-  message: {
-    icon: MessageSquare,
-    label: "پیام",
-    color: "text-slate-600",
-    bg: "bg-slate-50",
-  },
-} as const;
-
-interface Props {
-  activities: RecentActivity[];
+interface RecentActivityFeedProps {
+  activities: RecentActivity[]
 }
 
-export function RecentActivityFeed({ activities }: Props) {
+const ACTIVITY_ICON = {
+  lab: { Icon: FlaskConical, color: 'text-emerald-500', bg: 'bg-emerald-50' },
+  session: { Icon: Activity, color: 'text-primary-500', bg: 'bg-primary-50' },
+  symptom: { Icon: Smile, color: 'text-amber-500', bg: 'bg-amber-50' },
+  message: { Icon: MessageSquare, color: 'text-violet-500', bg: 'bg-violet-50' },
+}
+
+export function RecentActivityFeed({ activities }: RecentActivityFeedProps) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+    <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
       <div className="px-6 py-4 border-b border-slate-50">
-        <h3 className="font-semibold text-slate-800">فعالیت‌های اخیر</h3>
+        <h2 className="font-semibold text-slate-800 text-sm">
+          فعالیت‌های اخیر
+        </h2>
       </div>
 
       {activities.length === 0 ? (
-        <div className="py-12 text-center text-slate-400 text-sm">
-          فعالیتی ثبت نشده
-        </div>
+        <EmptyState
+          title="فعالیتی ثبت نشده"
+          description="هنوز داده‌ای در سیستم ثبت نشده است"
+          size="sm"
+        />
       ) : (
-        <div className="divide-y divide-slate-50">
-          {activities.map((activity, idx) => {
-            const config =
-              TYPE_CONFIG[activity.type] ?? TYPE_CONFIG.session;
-            const Icon = config.icon;
-            const severityColors = activity.severity
-              ? getSeverityColor(activity.severity)
-              : null;
-
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-px bg-slate-50">
+          {activities.slice(0, 9).map((activity, i) => {
+            const config = ACTIVITY_ICON[activity.type]
             return (
               <motion.div
-                key={activity.id}
-                initial={{ opacity: 0, y: 5 }}
+                key={`${activity.patient_id}-${activity.time}-${i}`}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.04 }}
-                className="px-6 py-3.5 flex items-center gap-4"
+                transition={{ delay: i * 0.05 }}
+                className="flex items-start gap-3 bg-white px-5 py-4"
               >
                 <div
-                  className={cn(
-                    "w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
-                    config.bg
-                  )}
+                  className={`
+                  flex h-8 w-8 shrink-0 items-center justify-center
+                  rounded-xl ${config.bg}
+                `}
                 >
-                  <Icon className={cn("w-4 h-4", config.color)} />
+                  <config.Icon className={`h-4 w-4 ${config.color}`} />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-slate-700">
-                      {activity.patient_name}
-                    </span>
-                    <span className="text-xs text-slate-400">
-                      {config.label}
-                    </span>
-                    {severityColors && (
-                      <span
-                        className={cn(
-                          "text-xs px-1.5 py-0.5 rounded",
-                          severityColors.badge
-                        )}
-                      >
-                        {activity.severity === "high"
-                          ? "بحرانی"
-                          : activity.severity === "medium"
-                          ? "متوسط"
-                          : "کم"}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-400 mt-0.5 truncate">
-                    {activity.title}
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-slate-700 truncate">
+                    {activity.patient_name}
                   </p>
+                  <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                    {activity.description}
+                  </p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <Clock className="h-3 w-3 text-slate-300" />
+                    <span className="text-[10px] text-slate-400">
+                      {formatDistanceToNow(activity.time)}
+                    </span>
+                  </div>
                 </div>
-                <span className="text-xs text-slate-300 shrink-0">
-                  {formatRelativeTime(activity.timestamp)}
-                </span>
               </motion.div>
-            );
+            )
           })}
         </div>
       )}
     </div>
-  );
+  )
 }
