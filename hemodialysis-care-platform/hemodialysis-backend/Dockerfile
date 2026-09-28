@@ -16,8 +16,11 @@ WORKDIR /app
 # Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
-
+    pip install --no-cache-dir \
+    --index-url https://mirror-pypi.runflare.com/simple/ \
+    --trusted-host mirror-pypi.runflare.com \
+    -r requirements.txt
+    
 # Copy application code
 COPY . .
 
