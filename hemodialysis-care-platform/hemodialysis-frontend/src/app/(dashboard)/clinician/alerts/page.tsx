@@ -1,15 +1,23 @@
-// src/app/(dashboard)/clinician/alerts/page.tsx
-import { PageHeader } from "@/components/layout/PageHeader";
-import { AlertFeed } from "@/features/alerts/components/AlertFeed";
+'use client'
+
+import { motion } from 'motion/react'
+import { AlertFeed } from '@/features/alerts/components/AlertFeed'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { pageVariants } from '@/lib/animation/variants'
 
 export default function ClinicianAlertsPage() {
   return (
-    <div className="space-y-6">
+    <motion.div
+      variants={pageVariants}
+      initial="hidden"
+      animate="visible"
+      className="space-y-5"
+    >
       <PageHeader
-        title="هشدارهای بالینی"
-        description="هشدارهای تولیدشده توسط موتور تحلیل سیستم"
+        title="هشدارها"
+        description="هشدارهای تولید‌شده توسط سیستم تحلیل"
       />
       <AlertFeed />
-    </div>
-  );
+    </motion.div>
+  )
 }

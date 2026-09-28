@@ -1,95 +1,138 @@
-import axios, { type AxiosInstance, type AxiosError } from 'axios'
+import axios, {
+  type AxiosInstance,
+  type AxiosError,
+  type InternalAxiosRequestConfig,
+} from 'axios'
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api/v1'
 
-// ── Axios Instance ─────────────────────────────────────────────────────────
 const apiClient: AxiosInstance = axios.create({
   baseURL: BASE_URL,
   timeout: 30_000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
 })
 
-// ── Request Interceptor ────────────────────────────────────────────────────
+// ── Token management ────────────────────────────────────────────────────────
+export const tokenManager = {
+  getAccess: () =>
+    typeof window !== 'undefined'
+      ? localStorage.getItem('access_token')
+      : null,
+  getRefresh: () =>
+    typeof window !== 'undefined'
+      ? localStorage.getItem('refresh_token')
+      : null,
+  setTokens: (access: string, refresh?: string) => {
+    if (typeof window === 'undefined') return
+    localStorage.setItem('access_token', access)
+    if (refresh) localStorage.setItem('refresh_token', refresh)
+    // Cookie for middleware
+    const expires = new Date()
+    expires.setHours(expires.getHours() + 24)
+    document.cookie = `access_token=${access};expires=${expires.toUTCString()};path=/;SameSite=Strict`
+  },
+  clearTokens: () => {
+    if (typeof window === 'undefined') return
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('refresh_token')
+    document.cookie =
+      'access_token=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/'
+  },
+}
+
+// ── Request interceptor ─────────────────────────────────────────────────────
 apiClient.interceptors.request.use(
-  (config) => {
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('access_token')
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`
-      }
+  (config: InternalAxiosRequestConfig) => {
+    const token = tokenManager.getAccess()
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`
     }
     return config
   },
   (error) => Promise.reject(error)
 )
 
-// ── Response Interceptor ───────────────────────────────────────────────────
+// ── Response interceptor ────────────────────────────────────────────────────
 let isRefreshing = false
-let refreshSubscribers: Array<(token: string) => void> = []
+let queue: Array<{
+  resolve: (token: string) => void
+  reject: (err: unknown) => void
+}> = []
 
-function subscribeTokenRefresh(cb: (token: string) => void) {
-  refreshSubscribers.push(cb)
-}
-
-function onTokenRefreshed(token: string) {
-  refreshSubscribers.forEach((cb) => cb(token))
-  refreshSubscribers = []
+function processQueue(token: string | null, error: unknown = null) {
+  queue.forEach(({ resolve, reject }) => {
+    if (token) resolve(token)
+    else reject(error)
+  })
+  queue = []
 }
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (res) => res,
   async (error: AxiosError) => {
-    const originalRequest = error.config as typeof error.config & {
+    const original = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean
     }
 
-    if (error.response?.status === 401 && !originalRequest?._retry) {
+    if (
+      error.response?.status === 401 &&
+      original &&
+      !original._retry &&
+      !original.url?.includes('/auth/login') &&
+      !original.url?.includes('/auth/refresh')
+    ) {
       if (isRefreshing) {
-        return new Promise((resolve) => {
-          subscribeTokenRefresh((token) => {
-            if (originalRequest) {
-              originalRequest.headers = originalRequest.headers ?? {}
-              originalRequest.headers.Authorization = `Bearer ${token}`
-              resolve(apiClient(originalRequest))
-            }
+        return new Promise((resolve, reject) => {
+          queue.push({
+            resolve: (token) => {
+              original.headers.Authorization = `Bearer ${token}`
+              resolve(apiClient(original))
+            },
+            reject,
           })
         })
       }
 
-      if (originalRequest) {
-        originalRequest._retry = true
-      }
+      original._retry = true
       isRefreshing = true
 
-      try {
-        const refreshToken = localStorage.getItem('refresh_token')
-        if (!refreshToken) throw new Error('No refresh token')
+      const refreshToken = tokenManager.getRefresh()
 
+      if (!refreshToken) {
+        isRefreshing = false
+        tokenManager.clearTokens()
+        if (typeof window !== 'undefined')
+          window.location.href = '/login'
+        return Promise.reject(error)
+      }
+
+      try {
         const res = await axios.post(`${BASE_URL}/auth/refresh`, {
           refresh_token: refreshToken,
         })
 
-        const newToken: string = res.data?.access_token ?? res.data?.data?.access_token
-        localStorage.setItem('access_token', newToken)
-        onTokenRefreshed(newToken)
+        const newAccess: string =
+          res.data?.access_token ?? res.data?.data?.access_token
+
+        if (!newAccess) throw new Error('No token in refresh response')
+
+        tokenManager.setTokens(
+          newAccess,
+          res.data?.refresh_token ?? refreshToken
+        )
+        processQueue(newAccess)
         isRefreshing = false
 
-        if (originalRequest) {
-          originalRequest.headers = originalRequest.headers ?? {}
-          originalRequest.headers.Authorization = `Bearer ${newToken}`
-          return apiClient(originalRequest)
-        }
-      } catch {
+        original.headers.Authorization = `Bearer ${newAccess}`
+        return apiClient(original)
+      } catch (refreshError) {
+        processQueue(null, refreshError)
         isRefreshing = false
-        refreshSubscribers = []
-        localStorage.removeItem('access_token')
-        localStorage.removeItem('refresh_token')
-        if (typeof window !== 'undefined') {
+        tokenManager.clearTokens()
+        if (typeof window !== 'undefined')
           window.location.href = '/login'
-        }
+        return Promise.reject(refreshError)
       }
     }
 

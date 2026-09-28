@@ -1,147 +1,147 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
-import apiClient from '@/lib/api/client'
+import { persist, createJSONStorage } from 'zustand/middleware'
+import apiClient, { tokenManager } from '@/lib/api/client'
 import { API_ENDPOINTS } from '@/lib/api/endpoints'
-import type { CurrentUser, LoginRequest, LoginResponse } from '@/types/api.types'
+import type { CurrentUser, LoginRequest } from '@/types/api.types'
 
 interface AuthState {
   user: CurrentUser | null
   isAuthenticated: boolean
-  isLoading: boolean
+  /** true during initial session restoration */
+  isInitializing: boolean
+
   login: (data: LoginRequest) => Promise<void>
   logout: () => Promise<void>
-  restoreSession: () => Promise<void>
+  initialize: () => Promise<void>
   setUser: (user: CurrentUser) => void
+  clearAuth: () => void
 }
 
-// ── Cookie helper (برای middleware) ──────────────────────────────────────
-function setCookie(name: string, value: string, days = 1) {
-  if (typeof document === 'undefined') return
-  const expires = new Date()
-  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000)
-  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Strict`
-}
-
-function deleteCookie(name: string) {
-  if (typeof document === 'undefined') return
-  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/`
-}
-
-// ── Extract user from various response shapes ────────────────────────────
-function extractUser(responseData: unknown): CurrentUser | null {
-  const data = responseData as Record<string, unknown>
-
-  // shape: { user: {...} }
-  if (data?.user && typeof data.user === 'object') {
-    return data.user as CurrentUser
+// ── safe field extractors ───────────────────────────────────────────────────
+function extractField<T>(
+  obj: unknown,
+  ...keys: string[]
+): T | null {
+  if (!obj || typeof obj !== 'object') return null
+  const o = obj as Record<string, unknown>
+  for (const key of keys) {
+    if (o[key] !== undefined && o[key] !== null) return o[key] as T
   }
-  // shape: { data: { user: {...} } }
-  const inner = data?.data as Record<string, unknown> | undefined
-  if (inner?.user && typeof inner.user === 'object') {
-    return inner.user as CurrentUser
+  // try nested data
+  const nested = o.data
+  if (nested && typeof nested === 'object') {
+    const n = nested as Record<string, unknown>
+    for (const key of keys) {
+      if (n[key] !== undefined && n[key] !== null) return n[key] as T
+    }
   }
-  // shape: { user_info: {...} } — legacy
-  if (data?.user_info && typeof data.user_info === 'object') {
-    return data.user_info as CurrentUser
-  }
-  return null
-}
-
-function extractToken(
-  responseData: unknown,
-  key: 'access_token' | 'refresh_token'
-): string | null {
-  const data = responseData as Record<string, unknown>
-  if (typeof data?.[key] === 'string') return data[key] as string
-  const inner = data?.data as Record<string, unknown> | undefined
-  if (typeof inner?.[key] === 'string') return inner[key] as string
   return null
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       isAuthenticated: false,
-      isLoading: true,
+      isInitializing: true,
 
       login: async (credentials: LoginRequest) => {
-        const res = await apiClient.post(API_ENDPOINTS.auth.login, credentials)
-        const responseData = res.data
+        const res = await apiClient.post(
+          API_ENDPOINTS.auth.login,
+          credentials
+        )
+        const data = res.data
 
-        const accessToken = extractToken(responseData, 'access_token')
-        const refreshToken = extractToken(responseData, 'refresh_token')
-        const user = extractUser(responseData)
+        // backend returns: { access_token, refresh_token, token_type, user }
+        const accessToken = extractField<string>(
+          data,
+          'access_token'
+        )
+        const refreshToken = extractField<string>(
+          data,
+          'refresh_token'
+        )
+        // backend field is "user" — NOT "user_info"
+        const user = extractField<CurrentUser>(data, 'user', 'user_info')
 
-        if (!accessToken || !user) {
-          throw new Error('پاسخ نامعتبر از سرور')
+        if (!accessToken) {
+          throw new Error('سرور توکن معتبر برنگرداند')
+        }
+        if (!user?.id) {
+          throw new Error('سرور اطلاعات کاربر را برنگرداند')
         }
 
-        // localStorage برای API calls
-        localStorage.setItem('access_token', accessToken)
-        if (refreshToken) {
-          localStorage.setItem('refresh_token', refreshToken)
-        }
-
-        // Cookie برای middleware
-        setCookie('access_token', accessToken, 1)
-
-        set({ user, isAuthenticated: true, isLoading: false })
+        tokenManager.setTokens(accessToken, refreshToken ?? undefined)
+        set({ user, isAuthenticated: true, isInitializing: false })
       },
 
       logout: async () => {
         try {
           await apiClient.post(API_ENDPOINTS.auth.logout)
         } catch {
-          // Ignore
+          // ignore
         } finally {
-          localStorage.removeItem('access_token')
-          localStorage.removeItem('refresh_token')
-          deleteCookie('access_token')
-          set({ user: null, isAuthenticated: false, isLoading: false })
+          tokenManager.clearTokens()
+          set({
+            user: null,
+            isAuthenticated: false,
+            isInitializing: false,
+          })
           if (typeof window !== 'undefined') {
             window.location.href = '/login'
           }
         }
       },
 
-      restoreSession: async () => {
-        const token = localStorage.getItem('access_token')
+      initialize: async () => {
+        const token = tokenManager.getAccess()
 
         if (!token) {
-          set({ isLoading: false, isAuthenticated: false, user: null })
+          set({
+            user: null,
+            isAuthenticated: false,
+            isInitializing: false,
+          })
           return
         }
 
         try {
           const res = await apiClient.get(API_ENDPOINTS.auth.me)
-          const user = extractUser(res.data) ?? (res.data as CurrentUser)
+          const user =
+            extractField<CurrentUser>(res.data, 'user', 'data') ??
+            (res.data as CurrentUser)
 
-          if (user?.id) {
-            // Refresh cookie
-            setCookie('access_token', token, 1)
-            set({ user, isAuthenticated: true, isLoading: false })
-          } else {
-            throw new Error('Invalid user')
-          }
+          if (!user?.id) throw new Error('invalid me response')
+
+          // Refresh cookie TTL
+          tokenManager.setTokens(token)
+          set({ user, isAuthenticated: true, isInitializing: false })
         } catch {
-          localStorage.removeItem('access_token')
-          localStorage.removeItem('refresh_token')
-          deleteCookie('access_token')
-          set({ user: null, isAuthenticated: false, isLoading: false })
+          tokenManager.clearTokens()
+          set({
+            user: null,
+            isAuthenticated: false,
+            isInitializing: false,
+          })
         }
       },
 
-      setUser: (user: CurrentUser) => {
-        set({ user, isAuthenticated: true })
+      setUser: (user) => set({ user, isAuthenticated: true }),
+
+      clearAuth: () => {
+        tokenManager.clearTokens()
+        set({ user: null, isAuthenticated: false, isInitializing: false })
       },
     }),
     {
-      name: 'auth-storage',
-      partialize: (state) => ({
-        user: state.user,
-        isAuthenticated: state.isAuthenticated,
-      }),
+      name: 'dializ-auth',
+      storage: createJSONStorage(() => localStorage),
+      // only persist user so we can re-validate on startup
+      partialize: (s) => ({ user: s.user, isAuthenticated: s.isAuthenticated }),
+      // always start isInitializing=true even when rehydrating
+      onRehydrateStorage: () => (state) => {
+        if (state) state.isInitializing = true
+      },
     }
   )
 )

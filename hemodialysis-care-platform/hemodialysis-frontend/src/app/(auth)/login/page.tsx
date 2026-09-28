@@ -1,8 +1,8 @@
-import type { Metadata } from 'next'
 import { LoginPageClient } from './LoginPageClient'
+import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'ورود به سامانه',
+  title: 'ورود — سامانه دیالیز',
 }
 
 export default function LoginPage() {

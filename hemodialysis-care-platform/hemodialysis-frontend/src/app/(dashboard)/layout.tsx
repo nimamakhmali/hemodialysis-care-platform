@@ -6,11 +6,29 @@ import { useAuthStore } from '@/features/auth/stores/auth.store'
 import { AppShell } from '@/components/layout/AppShell'
 import { CLINICIAN_NAV, PATIENT_NAV, ADMIN_NAV } from '@/config/navigation'
 import { PageLoader } from '@/components/feedback/PageLoader'
-import { useQuery } from '@tanstack/react-query'
-import apiClient from '@/lib/api/client'
-import { API_ENDPOINTS } from '@/lib/api/endpoints'
-import { QUERY_KEYS } from '@/lib/query/queryClient'
-import type { ApiResponse } from '@/types/api.types'
+import { getDefaultRoute } from '@/config/permissions'
+import { useUnreadCount } from '@/features/messages/hooks/useMessages'
+import { useAllAlertsCount } from '@/features/alerts/hooks/useAlerts'
+
+function NavBadgeWrapper({
+  children,
+  role,
+}: {
+  children: (counts: { alerts: number; messages: number }) => React.ReactNode
+  role: string
+}) {
+  const user = useAuthStore((s) => s.user)
+  const patientId = user?.patient_profile?.patient_id ?? ''
+
+  const { data: unreadCount = 0 } = useUnreadCount(
+    role === 'patient' ? patientId : ''
+  )
+  const { data: alertCount = 0 } = useAllAlertsCount(
+    role !== 'patient'
+  )
+
+  return <>{children({ alerts: alertCount, messages: unreadCount })}</>
+}
 
 export default function DashboardLayout({
   children,
@@ -18,41 +36,54 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
-  const { user, isAuthenticated, isLoading } = useAuthStore()
-
-  // Fetch alert count for clinician
-  const { data: alertData } = useQuery({
-    queryKey: [QUERY_KEYS.allAlerts, 'count'],
-    queryFn: async () => {
-      const res = await apiClient.get<ApiResponse<{ count: number }>>(
-        `${API_ENDPOINTS.alerts.all}?status=new&size=1`
-      )
-      return (res.data as unknown as { total?: number })?.total ?? 0
-    },
-    enabled: user?.role === 'clinician' || user?.role === 'admin',
-    refetchInterval: 60_000,
-    staleTime: 30_000,
-  })
+  const { user, isAuthenticated, isInitializing } = useAuthStore()
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (!isInitializing && !isAuthenticated) {
       router.replace('/login')
     }
-  }, [isLoading, isAuthenticated, router])
+  }, [isInitializing, isAuthenticated, router])
 
-  if (isLoading) return <PageLoader />
+  // Show loader while checking session
+  if (isInitializing) return <PageLoader />
+
+  // Don't render protected content if not authenticated
   if (!isAuthenticated || !user) return null
 
-  const navItems =
-    user.role === 'clinician'
+  const role = user.role
+  const baseNav =
+    role === 'clinician'
       ? CLINICIAN_NAV
-      : user.role === 'admin'
+      : role === 'admin'
       ? ADMIN_NAV
       : PATIENT_NAV
 
   return (
-    <AppShell navItems={navItems} alertCount={alertData ?? undefined}>
-      {children}
-    </AppShell>
+    <NavBadgeWrapper role={role}>
+      {({ alerts, messages }) => {
+        // Inject badges into nav
+        const navItems = baseNav.map((item) => {
+          if (item.href.endsWith('/alerts') && alerts > 0) {
+            return { ...item, badge: alerts, badgeVariant: 'danger' as const }
+          }
+          if (item.href.endsWith('/messages') && messages > 0) {
+            return { ...item, badge: messages, badgeVariant: 'danger' as const }
+          }
+          if (item.href.endsWith('/recommendations') && alerts > 0) {
+            return { ...item, badge: alerts, badgeVariant: 'warning' as const }
+          }
+          return item
+        })
+
+        return (
+          <AppShell
+            navItems={navItems}
+            alertCount={role !== 'patient' ? alerts : undefined}
+          >
+            {children}
+          </AppShell>
+        )
+      }}
+    </NavBadgeWrapper>
   )
 }

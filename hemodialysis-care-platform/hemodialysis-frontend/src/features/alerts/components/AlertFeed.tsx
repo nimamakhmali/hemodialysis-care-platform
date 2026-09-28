@@ -1,37 +1,26 @@
 'use client'
 
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'motion/react'
-import { AlertTriangle, CheckCircle, X, RefreshCw, Filter } from 'lucide-react'
-import { useAlerts, useAcknowledgeAlert, useResolveAlert } from '../hooks/useAlerts'
+import { motion } from 'motion/react'
+import { Bell, Filter } from 'lucide-react'
+import { useAllAlerts, useAcknowledgeAlert, useResolveAlert } from '../hooks/useAlerts'
 import { AlertCard } from './AlertCard'
-import { EmptyState } from '@/components/ui/EmptyState'
 import { Skeleton } from '@/components/ui/Skeleton'
-import type { AlertSeverity, AlertStatus } from '@/types/common.types'
-
-const SEVERITY_FILTER: { value: AlertSeverity | 'all'; label: string }[] = [
-  { value: 'all', label: 'همه' },
-  { value: 'high', label: 'بحرانی' },
-  { value: 'medium', label: 'متوسط' },
-  { value: 'low', label: 'کم' },
-]
-
-const STATUS_FILTER: { value: AlertStatus | 'all'; label: string }[] = [
-  { value: 'all', label: 'همه' },
-  { value: 'new', label: 'جدید' },
-  { value: 'acknowledged', label: 'تأییدشده' },
-  { value: 'resolved', label: 'بسته‌شده' },
-]
+import { EmptyState } from '@/components/ui/EmptyState'
+import { Pagination } from '@/components/ui/Pagination'
+import type { AlertStatus, AlertSeverity } from '@/types/common.types'
 
 export function AlertFeed() {
-  const [severity, setSeverity] = useState<AlertSeverity | undefined>()
-  const [status, setStatus] = useState<AlertStatus | undefined>()
+  const [page, setPage] = useState(1)
+  const [statusFilter, setStatusFilter] = useState<AlertStatus | undefined>('new')
+  const [severityFilter, setSeverityFilter] = useState<AlertSeverity | undefined>()
 
-  const { data, isLoading, isError, refetch } = useAlerts(
-    severity || status
-      ? { ...(severity && { severity }), ...(status && { status }) }
-      : undefined
-  )
+  const { data, isLoading, isError } = useAllAlerts({
+    page,
+    size: 15,
+    status: statusFilter,
+    severity: severityFilter,
+  })
 
   const { mutate: acknowledge } = useAcknowledgeAlert()
   const { mutate: resolve } = useResolveAlert()
@@ -39,106 +28,100 @@ export function AlertFeed() {
   const alerts = data?.data ?? []
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-4">
-        {/* Severity */}
-        <div className="flex items-center gap-1.5 rounded-xl border border-slate-100 bg-white p-1 shadow-sm">
-          {SEVERITY_FILTER.map(({ value, label }) => (
+      <div className="flex flex-wrap gap-2">
+        <div className="flex rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+          {([
+            { label: 'جدید', value: 'new' },
+            { label: 'همه', value: undefined },
+            { label: 'بسته‌شده', value: 'resolved' },
+          ] as { label: string; value: AlertStatus | undefined }[]).map((f) => (
             <button
-              key={value}
-              onClick={() =>
-                setSeverity(value === 'all' ? undefined : (value as AlertSeverity))
-              }
-              className={`
-                rounded-lg px-3 py-1.5 text-xs font-medium transition-all
-                ${
-                  (value === 'all' && !severity) || severity === value
-                    ? 'bg-primary-500 text-white shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-50'
-                }
-              `}
+              key={String(f.value)}
+              onClick={() => { setStatusFilter(f.value); setPage(1) }}
+              className={`px-3 py-2 text-xs font-medium transition-colors ${
+                statusFilter === f.value
+                  ? 'bg-[#0EA5E9] text-white'
+                  : 'text-slate-600 hover:bg-slate-50'
+              }`}
             >
-              {label}
+              {f.label}
             </button>
           ))}
         </div>
 
-        {/* Status */}
-        <div className="flex items-center gap-1.5 rounded-xl border border-slate-100 bg-white p-1 shadow-sm">
-          {STATUS_FILTER.map(({ value, label }) => (
+        <div className="flex rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+          {([
+            { label: 'همه شدت', value: undefined },
+            { label: 'بحرانی', value: 'high' },
+            { label: 'متوسط', value: 'medium' },
+          ] as { label: string; value: AlertSeverity | undefined }[]).map((f) => (
             <button
-              key={value}
-              onClick={() =>
-                setStatus(value === 'all' ? undefined : (value as AlertStatus))
-              }
-              className={`
-                rounded-lg px-3 py-1.5 text-xs font-medium transition-all
-                ${
-                  (value === 'all' && !status) || status === value
-                    ? 'bg-slate-700 text-white shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-50'
-                }
-              `}
+              key={String(f.value)}
+              onClick={() => { setSeverityFilter(f.value); setPage(1) }}
+              className={`px-3 py-2 text-xs font-medium transition-colors ${
+                severityFilter === f.value
+                  ? 'bg-[#0EA5E9] text-white'
+                  : 'text-slate-600 hover:bg-slate-50'
+              }`}
             >
-              {label}
+              {f.label}
             </button>
           ))}
         </div>
-
-        <button
-          onClick={() => refetch()}
-          className="mr-auto flex items-center gap-1.5 rounded-lg text-xs text-slate-400 hover:text-slate-600 transition-colors"
-        >
-          <RefreshCw className="h-3.5 w-3.5" />
-          بروزرسانی
-        </button>
       </div>
 
-      {/* Loading */}
       {isLoading && (
         <div className="space-y-3">
-          {Array.from({ length: 4 }).map((_, i) => (
+          {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-24 rounded-2xl" />
           ))}
         </div>
       )}
 
-      {/* Error */}
       {isError && (
-        <div className="rounded-2xl border border-red-100 bg-red-50 p-6 text-center">
-          <p className="text-sm text-red-600">خطا در دریافت هشدارها</p>
-        </div>
+        <p className="text-center text-sm text-red-500 py-8">
+          خطا در دریافت هشدارها
+        </p>
       )}
 
-      {/* Empty */}
       {!isLoading && !isError && alerts.length === 0 && (
         <EmptyState
-          icon={<CheckCircle />}
+          icon={<Bell />}
           title="هشداری وجود ندارد"
-          description="در حال حاضر هیچ هشدار فعالی ثبت نشده است"
+          description="هیچ هشداری با فیلتر انتخابی یافت نشد"
         />
       )}
 
-      {/* Alerts */}
-      <AnimatePresence mode="popLayout">
-        {alerts.map((alert, i) => (
-          <motion.div
-            key={alert.id}
-            layout
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ delay: i * 0.04 }}
-          >
+      {!isLoading && alerts.length > 0 && (
+        <div className="space-y-3">
+          {alerts.map((alert) => (
             <AlertCard
+              key={alert.id}
               alert={alert}
-              onAcknowledge={(id) => acknowledge({ alertId: id })}
-              onResolve={(id) => resolve({ alertId: id })}
+              onAcknowledge={
+                alert.status === 'new'
+                  ? (id) => acknowledge({ alertId: id })
+                  : undefined
+              }
+              onResolve={
+                alert.status !== 'resolved'
+                  ? (id) => resolve({ alertId: id })
+                  : undefined
+              }
             />
-          </motion.div>
-        ))}
-      </AnimatePresence>
+          ))}
+        </div>
+      )}
+
+      {data && data.pages > 1 && (
+        <Pagination
+          currentPage={page}
+          totalPages={data.pages}
+          onPageChange={setPage}
+        />
+      )}
     </div>
   )
 }

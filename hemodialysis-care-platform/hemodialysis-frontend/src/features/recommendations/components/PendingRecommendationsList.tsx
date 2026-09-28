@@ -1,44 +1,30 @@
 'use client'
 
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'motion/react'
-import { ClipboardList } from 'lucide-react'
-import {
-  usePendingRecommendations,
-  useApproveRecommendation,
-  useRejectRecommendation,
-} from '../hooks/useRecommendations'
-import { RecommendationCard } from './RecommendationCard'
+import { motion } from 'motion/react'
+import { ClipboardList, Clock } from 'lucide-react'
+import { usePendingRecommendations } from '../hooks/useRecommendations'
 import { RecommendationReviewModal } from './RecommendationReviewModal'
-import { EmptyState } from '@/components/ui/EmptyState'
 import { Skeleton } from '@/components/ui/Skeleton'
-import type { Recommendation } from '../types/recommendation.types'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { Pagination } from '@/components/ui/Pagination'
+import { ALERT_SEVERITY_COLORS } from '@/config/constants'
+import { formatDistanceToNow } from '@/lib/utils/date.utils'
+import type { RecommendationItem } from '@/types/api.types'
 
 export function PendingRecommendationsList() {
-  const { data: recs, isLoading, isError } = usePendingRecommendations()
-  const [selected, setSelected] = useState<Recommendation | null>(null)
+  const [page, setPage] = useState(1)
+  const [selected, setSelected] = useState<RecommendationItem | null>(null)
 
-  const { mutateAsync: approve, isPending: approving } = useApproveRecommendation()
-  const { mutateAsync: reject, isPending: rejecting } = useRejectRecommendation()
+  const { data, isLoading, isError } = usePendingRecommendations()
 
-  const handleApprove = async (
-    id: string,
-    patientContent?: string
-  ) => {
-    await approve({ id, data: { patient_content: patientContent } })
-    setSelected(null)
-  }
-
-  const handleReject = async (id: string, reason: string) => {
-    await reject({ id, data: { reason } })
-    setSelected(null)
-  }
+  const recs = data?.data ?? []
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-40 rounded-2xl" />
+      <div className="space-y-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-24 rounded-2xl" />
         ))}
       </div>
     )
@@ -46,54 +32,90 @@ export function PendingRecommendationsList() {
 
   if (isError) {
     return (
-      <div className="rounded-2xl border border-red-100 bg-red-50 p-6 text-center">
-        <p className="text-sm text-red-600">خطا در دریافت توصیه‌ها</p>
-      </div>
+      <p className="text-center text-sm text-red-500 py-8">
+        خطا در دریافت توصیه‌ها
+      </p>
     )
   }
 
-  if (!recs || recs.length === 0) {
+  if (recs.length === 0) {
     return (
       <EmptyState
         icon={<ClipboardList />}
         title="توصیه‌ای در انتظار نیست"
-        description="تمام توصیه‌های سیستم بررسی شده‌اند"
+        description="همه توصیه‌های سیستم بررسی شده‌اند"
       />
     )
   }
 
   return (
-    <>
-      <div className="space-y-4">
-        <AnimatePresence mode="popLayout">
-          {recs.map((rec, i) => (
+    <div className="space-y-4">
+      <div className="space-y-3">
+        {recs.map((rec, i) => {
+          const cfg = ALERT_SEVERITY_COLORS[rec.priority]
+          return (
             <motion.div
               key={rec.id}
-              layout
-              initial={{ opacity: 0, y: 12 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ delay: i * 0.06 }}
+              transition={{ delay: i * 0.05 }}
+              onClick={() => setSelected(rec)}
+              className="cursor-pointer rounded-2xl border border-slate-100 bg-white p-4 shadow-sm hover:border-[#BAE6FD] hover:shadow-md transition-all"
             >
-              <RecommendationCard
-                recommendation={rec}
-                onReview={() => setSelected(rec)}
-              />
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    {rec.patient_name && (
+                      <span className="text-xs font-medium text-slate-700">
+                        {rec.patient_name}
+                      </span>
+                    )}
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${cfg.badge}`}
+                    >
+                      {rec.priority === 'high'
+                        ? 'بحرانی'
+                        : rec.priority === 'medium'
+                        ? 'متوسط'
+                        : 'کم'}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">
+                    {rec.draft_for_clinician}
+                  </p>
+                </div>
+
+                <div className="flex flex-col items-end gap-2 shrink-0">
+                  <div className="flex items-center gap-1 text-[11px] text-slate-400">
+                    <Clock className="h-3 w-3" />
+                    {formatDistanceToNow(rec.created_at)}
+                  </div>
+                  <button className="rounded-lg bg-[#0EA5E9] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-[#0284C7]">
+                    بررسی
+                  </button>
+                </div>
+              </div>
             </motion.div>
-          ))}
-        </AnimatePresence>
+          )
+        })}
       </div>
+
+      {data && data.pages > 1 && (
+        <Pagination
+          currentPage={page}
+          totalPages={data.pages}
+          onPageChange={setPage}
+        />
+      )}
 
       {selected && (
         <RecommendationReviewModal
           recommendation={selected}
+          isOpen={!!selected}
           onClose={() => setSelected(null)}
-          onApprove={(content) => handleApprove(selected.id, content)}
-          onReject={(reason) => handleReject(selected.id, reason)}
-          isApproving={approving}
-          isRejecting={rejecting}
         />
       )}
-    </>
+    </div>
   )
 }

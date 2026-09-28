@@ -9,6 +9,11 @@ import * as THREE from 'three'
 import { gsap } from 'gsap'
 import Link from 'next/link'
 import { Activity, Heart, Shield, Brain, Zap, ChevronDown, ArrowLeft, Users, Bell, TrendingUp, Award, Lock, Cpu, Droplets, Scale } from 'lucide-react'
+import { redirect } from 'next/navigation'
+
+export function RootPage() {
+  redirect('/login')
+}
 
 // ============================================================
 // THREE.JS COMPONENTS

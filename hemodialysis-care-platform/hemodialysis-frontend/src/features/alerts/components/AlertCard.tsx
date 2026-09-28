@@ -1,48 +1,49 @@
 'use client'
 
 import { motion } from 'motion/react'
-import { AlertTriangle, AlertCircle, Info, CheckCheck, X } from 'lucide-react'
-import type { Alert } from '../types/alert.types'
-import { formatDistanceToNow } from '@/lib/utils/date.utils'
+import { AlertTriangle, Bell, Info, CheckCircle2, Eye, X } from 'lucide-react'
+import type { AlertItem } from '@/types/api.types'
+import type { AlertSeverity } from '@/types/common.types'
+import {
+  ALERT_SEVERITY_FA,
+  ALERT_CATEGORY_FA,
+  ALERT_STATUS_FA,
+} from '@/types/common.types'
+import { formatDateTime } from '@/lib/utils/date.utils'
+import { cn } from '@/lib/utils/cn'
 
 interface AlertCardProps {
-  alert: Alert
+  alert: AlertItem
   onAcknowledge?: (id: string) => void
   onResolve?: (id: string) => void
   compact?: boolean
 }
 
-const SEVERITY_CONFIG = {
+const SEVERITY_CONFIG: Record<
+  AlertSeverity,
+  { icon: typeof AlertTriangle; bg: string; text: string; border: string; dot: string }
+> = {
   high: {
     icon: AlertTriangle,
-    iconColor: 'text-red-600',
-    bg: 'bg-red-50 border-red-200',
-    badge: 'bg-red-100 text-red-700',
-    label: 'بحرانی',
+    bg: 'bg-red-50',
+    text: 'text-red-700',
+    border: 'border-red-200',
     dot: 'bg-red-500',
   },
   medium: {
-    icon: AlertCircle,
-    iconColor: 'text-amber-600',
-    bg: 'bg-amber-50 border-amber-200',
-    badge: 'bg-amber-100 text-amber-700',
-    label: 'متوسط',
+    icon: Bell,
+    bg: 'bg-amber-50',
+    text: 'text-amber-700',
+    border: 'border-amber-200',
     dot: 'bg-amber-500',
   },
   low: {
     icon: Info,
-    iconColor: 'text-sky-600',
-    bg: 'bg-sky-50 border-sky-200',
-    badge: 'bg-sky-100 text-sky-700',
-    label: 'کم',
-    dot: 'bg-sky-400',
+    bg: 'bg-blue-50',
+    text: 'text-blue-700',
+    border: 'border-blue-200',
+    dot: 'bg-blue-400',
   },
-}
-
-const STATUS_LABEL = {
-  new: 'جدید',
-  acknowledged: 'بررسی‌شده',
-  resolved: 'بسته‌شده',
 }
 
 export function AlertCard({
@@ -51,81 +52,117 @@ export function AlertCard({
   onResolve,
   compact = false,
 }: AlertCardProps) {
-  const config = SEVERITY_CONFIG[alert.severity]
+  const cfg = SEVERITY_CONFIG[alert.severity] ?? SEVERITY_CONFIG.medium
+  const Icon = cfg.icon
+  const isNew = alert.status === 'new'
   const isResolved = alert.status === 'resolved'
 
   return (
-    <div
-      className={`
-        rounded-2xl border p-5 transition-all duration-200
-        ${isResolved ? 'opacity-60' : ''}
-        ${config.bg}
-      `}
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={cn(
+        'rounded-2xl border p-4 shadow-sm',
+        cfg.bg,
+        cfg.border,
+        isResolved && 'opacity-60'
+      )}
     >
-      <div className="flex items-start gap-4">
-        {/* Icon */}
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/70">
-          <config.icon className={`h-5 w-5 ${config.iconColor}`} />
+      {/* Header */}
+      <div className="flex items-start gap-3">
+        <div
+          className={cn(
+            'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/70'
+          )}
+        >
+          <Icon className={cn('h-4 w-4', cfg.text)} />
         </div>
 
-        {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2 flex-wrap mb-2">
-            <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
               <span
-                className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${config.badge}`}
+                className={cn(
+                  'rounded-full px-2 py-0.5 text-[10px] font-bold',
+                  cfg.text,
+                  'bg-white/60'
+                )}
               >
-                {config.label}
+                {ALERT_SEVERITY_FA[alert.severity]}
               </span>
-              <span className="text-xs text-slate-500">
-                {STATUS_LABEL[alert.status]}
+              <span className="text-[10px] text-slate-500">
+                {ALERT_CATEGORY_FA[alert.category]}
               </span>
-              {alert.patient_name && (
-                <span className="text-xs font-medium text-slate-700">
-                  {alert.patient_name}
+              {isNew && (
+                <span className="flex items-center gap-1 rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                  <span className={cn('h-1.5 w-1.5 rounded-full', cfg.dot)} />
+                  جدید
                 </span>
               )}
             </div>
-            <span className="text-[11px] text-slate-400 whitespace-nowrap">
-              {formatDistanceToNow(alert.created_at)}
+            <span className="text-[11px] text-slate-400 shrink-0">
+              {formatDateTime(alert.created_at)}
             </span>
           </div>
 
-          <p className="text-sm font-medium text-slate-800 mb-1">
+          <p className={cn('text-sm font-semibold mt-1', cfg.text)}>
             {alert.title}
           </p>
 
           {!compact && (
-            <p className="text-xs text-slate-600 leading-relaxed">
+            <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
               {alert.clinician_explanation}
             </p>
           )}
 
-          {/* Actions */}
-          {!isResolved && (onAcknowledge || onResolve) && (
-            <div className="flex items-center gap-2 mt-3">
-              {alert.status === 'new' && onAcknowledge && (
-                <button
-                  onClick={() => onAcknowledge(alert.id)}
-                  className="flex items-center gap-1.5 rounded-lg bg-white/80 border border-current/20 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-white transition-colors"
-                >
-                  <CheckCheck className="h-3.5 w-3.5" />
-                  دیدم
-                </button>
-              )}
-              {onResolve && (
-                <button
-                  onClick={() => onResolve(alert.id)}
-                  className="flex items-center gap-1.5 rounded-lg bg-white/80 border border-current/20 px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-white transition-colors"
-                >
-                  <X className="h-3.5 w-3.5" />
-                  بستن
-                </button>
-              )}
-            </div>
+          {/* Evidence */}
+          {!compact && alert.evidence &&
+            Object.keys(alert.evidence).length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {Object.entries(alert.evidence)
+                  .slice(0, 4)
+                  .map(([k, v]) => (
+                    <span
+                      key={k}
+                      className="rounded-md bg-white/60 px-2 py-0.5 text-[10px] text-slate-600"
+                    >
+                      {k}: {String(v)}
+                    </span>
+                  ))}
+              </div>
+            )}
+
+          {alert.patient_name && (
+            <p className="text-[11px] text-slate-500 mt-1">
+              بیمار: {alert.patient_name}
+            </p>
           )}
         </div>
       </div>
-    </div>
+
+      {/* Actions */}
+      {(onAcknowledge || onResolve) && !isResolved && (
+        <div className="mt-3 flex items-center gap-2 justify-end">
+          {onAcknowledge && isNew && (
+            <button
+              onClick={() => onAcknowledge(alert.id)}
+              className="flex items-center gap-1.5 rounded-lg bg-white/70 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-white transition-colors"
+            >
+              <Eye className="h-3.5 w-3.5" />
+              دیدم
+            </button>
+          )}
+          {onResolve && (
+            <button
+              onClick={() => onResolve(alert.id)}
+              className="flex items-center gap-1.5 rounded-lg bg-white/70 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-white transition-colors"
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              بستن
+            </button>
+          )}
+        </div>
+      )}
+    </motion.div>
   )
 }

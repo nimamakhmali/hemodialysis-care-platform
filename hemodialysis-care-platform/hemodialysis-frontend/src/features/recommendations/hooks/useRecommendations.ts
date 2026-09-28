@@ -1,80 +1,72 @@
-// src/features/recommendations/hooks/useRecommendations.ts
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { recommendationsService } from "../services/recommendations.service";
-import { QUERY_KEYS } from "@/lib/query/queryClient";
-import toast from "react-hot-toast";
-import type {
-  ApproveRecommendationRequest,
-  RejectRecommendationRequest,
-} from "../types/recommendation.types";
+'use client'
+
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { recommendationsService } from '../services/recommendations.service'
+import { QUERY_KEYS } from '@/lib/query/queryClient'
+import toast from 'react-hot-toast'
+import type { ApprovePayload, RejectPayload } from '../services/recommendations.service'
 
 export function usePendingRecommendations() {
   return useQuery({
-    queryKey: [QUERY_KEYS.pendingRecommendations],
+    queryKey: QUERY_KEYS.pendingRecommendations,
     queryFn: recommendationsService.getPending,
-    refetchInterval: 60_000,
-  });
+    staleTime: 60_000,
+    refetchInterval: 2 * 60_000,
+  })
 }
 
-export function usePendingRecommendationsCount() {
+export function usePatientRecommendations(
+  patientId: string,
+  params?: { page?: number; size?: number }
+) {
   return useQuery({
-    queryKey: [QUERY_KEYS.pendingRecommendationsCount],
-    queryFn: recommendationsService.getPendingCount,
-    refetchInterval: 30_000,
-  });
-}
-
-export function usePatientRecommendations(patientId: string) {
-  return useQuery({
-    queryKey: QUERY_KEYS.patientRecommendations(patientId),
-    queryFn: () => recommendationsService.getPatientRecommendations(patientId),
+    queryKey: [...QUERY_KEYS.recommendations(patientId), params],
+    queryFn: () =>
+      recommendationsService.getPatientRecommendations(patientId, params),
     enabled: !!patientId,
-  });
+    staleTime: 60_000,
+  })
 }
 
 export function useApproveRecommendation() {
-  const qc = useQueryClient();
+  const qc = useQueryClient()
   return useMutation({
     mutationFn: ({
-      id,
-      data,
+      recId,
+      payload,
     }: {
-      id: string;
-      data: ApproveRecommendationRequest;
-    }) => recommendationsService.approve(id, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [QUERY_KEYS.pendingRecommendations] });
+      recId: string
+      payload?: ApprovePayload
+    }) => recommendationsService.approve(recId, payload),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.pendingRecommendations })
       qc.invalidateQueries({
-        queryKey: [QUERY_KEYS.pendingRecommendationsCount],
-      });
-      qc.invalidateQueries({ queryKey: [QUERY_KEYS.clinicianDashboard] });
-      toast.success("توصیه با موفقیت تأیید شد");
+        queryKey: QUERY_KEYS.recommendations(data.patient_id),
+      })
+      qc.invalidateQueries({ queryKey: [QUERY_KEYS.clinicianDashboard] })
+      toast.success('توصیه تأیید شد و برای بیمار ارسال شد')
     },
-    onError: () => {
-      toast.error("خطا در تأیید توصیه");
-    },
-  });
+    onError: () => toast.error('خطا در تأیید توصیه'),
+  })
 }
 
 export function useRejectRecommendation() {
-  const qc = useQueryClient();
+  const qc = useQueryClient()
   return useMutation({
     mutationFn: ({
-      id,
-      data,
+      recId,
+      payload,
     }: {
-      id: string;
-      data: RejectRecommendationRequest;
-    }) => recommendationsService.reject(id, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [QUERY_KEYS.pendingRecommendations] });
+      recId: string
+      payload: RejectPayload
+    }) => recommendationsService.reject(recId, payload),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.pendingRecommendations })
       qc.invalidateQueries({
-        queryKey: [QUERY_KEYS.pendingRecommendationsCount],
-      });
-      toast.success("توصیه رد شد");
+        queryKey: QUERY_KEYS.recommendations(data.patient_id),
+      })
+      toast.success('توصیه رد شد')
     },
-    onError: () => {
-      toast.error("خطا در رد توصیه");
-    },
-  });
+    onError: () => toast.error('خطا در رد توصیه'),
+  })
 }

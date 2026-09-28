@@ -1,48 +1,18 @@
-import { useAuthStore } from '@features/auth/stores/auth.store'
-import type { UserRole } from '@appTypes/common.types'
+'use client'
 
-const ROLE_HIERARCHY: Record<UserRole, number> = {
-  patient: 1,
-  clinician: 2,
-  admin: 3,
+import { useAuthStore } from '@/features/auth/stores/auth.store'
+import { hasPermission, hasAnyPermission, type Permission } from '@/config/permissions'
+
+export function usePermission(permission: Permission): boolean {
+  const role = useAuthStore((s) => s.user?.role)
+  return hasPermission(role, permission)
 }
 
-export function usePermission() {
-  const user = useAuthStore((s) => s.user)
-
-  const hasRole = (...roles: UserRole[]): boolean => {
-    if (!user) return false
-    return roles.includes(user.role)
-  }
-
-  const hasMinRole = (minRole: UserRole): boolean => {
-    if (!user) return false
-    return ROLE_HIERARCHY[user.role] >= ROLE_HIERARCHY[minRole]
-  }
-
-const canAccessPatient = (patientId?: string): boolean => {
-  if (!user) return false
-  if (user.role === 'clinician' || user.role === 'admin') return true
-  if (user.role === 'patient') {
-    // مقایسه باید با Patient.id باشد، نه User.id
-    return user.patient_profile?.patient_id === patientId
-  }
-  return false
+export function useAnyPermission(permissions: Permission[]): boolean {
+  const role = useAuthStore((s) => s.user?.role)
+  return hasAnyPermission(role, permissions)
 }
 
-  return {
-    user,
-    role: user?.role,
-    isPatient: user?.role === 'patient',
-    isClinician: user?.role === 'clinician',
-    isAdmin: user?.role === 'admin',
-    hasRole,
-    hasMinRole,
-    canAccessPatient,
-    canManageUsers: hasRole('admin'),
-    canApproveRecommendations: hasRole('clinician', 'admin'),
-    canViewAllPatients: hasRole('clinician', 'admin'),
-    canCreateSessions: hasRole('clinician', 'admin'),
-    canCreateLabs: hasRole('clinician', 'admin'),
-  }
+export function useRole() {
+  return useAuthStore((s) => s.user?.role ?? null)
 }
