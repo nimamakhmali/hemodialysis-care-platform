@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
+import type { FormEvent } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   motion,
   useMotionValue,
@@ -11,16 +13,13 @@ import {
 } from 'framer-motion'
 import {
   Heart,
-  Activity,
-  BookOpen,
-  Bell,
-  Shield,
-  TrendingUp,
-  Zap,
-  Sparkles,
+  AlertCircle,
+  Eye,
+  EyeOff,
+  Loader2,
 } from 'lucide-react'
 import { cn } from '@lib/utils/cn'
-import { LoginForm } from '@features/auth/components/LoginForm'
+import { useAuthStore } from '@/features/auth/stores/auth.store'
 
 
 // ─── Static particle config (deterministic — no hydration mismatch) ───────
@@ -475,10 +474,6 @@ function RightPanelECG() {
 }
 
 // ─── Main Page ──────────────────────────────────────────────────────────────
-'use client'
-
-import { useAuthStore } from '@/features/auth/stores/auth.store'
-
 export function LoginPageClient() {
   const router = useRouter()
   const { login } = useAuthStore()
@@ -489,7 +484,7 @@ export function LoginPageClient() {
   const [error, setError] = useState('')
   const [isPending, setIsPending] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     if (!phone.trim() || !password) return
 
