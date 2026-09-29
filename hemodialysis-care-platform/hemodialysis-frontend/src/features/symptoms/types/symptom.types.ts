@@ -113,7 +113,7 @@ export const SEVERITY_COLORS: Record<SymptomSeverity, string> = {
 };
 
 // علائم خطرناک که نیاز به هشدار فوری دارند
-export const DANGER_SYMPTOMS: SymptomType[] = [
+export const DANGER_SYMPTOMS: Set<SymptomType> = new Set([
   "chest_pain",
   "shortness_of_breath",
-];
+]);

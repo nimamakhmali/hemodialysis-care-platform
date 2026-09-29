@@ -1,20 +1,16 @@
 // src/features/lab-results/components/LabTrendChart.tsx
 'use client'
 
-import { useRef, useState } from 'react'
-import { motion, useInView, AnimatePresence } from 'motion/react'
-import { gsap } from 'gsap'
-import { useEffect } from 'react'
+import { useRef } from 'react'
+import { motion, useInView } from 'motion/react'
 import {
-  AreaChart, Area, LineChart, Line, XAxis, YAxis,
+  AreaChart, Area, XAxis, YAxis,
   CartesianGrid, Tooltip, ResponsiveContainer,
-  ReferenceLine, ReferenceArea,
 } from 'recharts'
 import { TrendingUp, TrendingDown, Minus, FlaskConical } from 'lucide-react'
 import { LAB_NAMES_FA, LAB_UNITS, CHART_COLORS, TREND_DIRECTION_FA } from '@/config/constants'
-import type { LabTrendResponse } from '../types/lab.types'
-import type { LabTestCode } from '@/types/common.types'
-import { cn } from '@/lib/utils/cn'
+import type { LabTrendResponse, LabTrendPoint } from '../types/lab.types'
+import type { LabTestCode, TrendDirection } from '@/types/common.types'
 
 interface Props {
   data: LabTrendResponse
@@ -46,19 +42,31 @@ function CustomTooltip({ active, payload, label, unit }: any) {
 export function LabTrendChart({ data, testCode }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const inView = useInView(ref, { once: true, margin: '-60px' })
-  const trend = data.trend
-  const history = data.history ?? []
-  const nameFa = LAB_NAMES_FA[testCode as LabTestCode] ?? testCode
-  const unit = (data.unit || LAB_UNITS[testCode as LabTestCode]) ?? ''
+  const history: LabTrendPoint[] = data.points ?? []
+  const nameFa = data.test_name_fa || (LAB_NAMES_FA[testCode as LabTestCode] ?? testCode)
+  const unit = data.unit || (LAB_UNITS[testCode as LabTestCode] ?? '')
 
-  const trendCfg = TREND_CONFIG[trend.direction] ?? TREND_CONFIG.stable
+  // Derive trend display info from the response shape
+  const direction: TrendDirection =
+    (data.trend_direction as TrendDirection) ?? 'stable'
+  const firstValue = history[0]?.value
+  const lastValue = history[history.length - 1]?.value ?? data.latest_value ?? undefined
+  const changePercent =
+    firstValue && lastValue && firstValue !== 0
+      ? ((lastValue - firstValue) / Math.abs(firstValue)) * 100
+      : 0
+  const isConcerning =
+    (data.normal_low != null && lastValue != null && lastValue < data.normal_low) ||
+    (data.normal_high != null && lastValue != null && lastValue > data.normal_high)
+
+  const trendCfg = TREND_CONFIG[direction] ?? TREND_CONFIG.stable
   const TrendIcon = trendCfg.icon
 
   // رنگ بر اساس trend و وضعیت
-  const lineColor = trend.isConcerning ? '#EF4444' : CHART_COLORS.primary
+  const lineColor = isConcerning ? '#EF4444' : CHART_COLORS.primary
 
   // اضافه کردن عنوان فارسی به data
-  const chartData = history.map((pt) => ({
+  const chartData: LabTrendPoint[] = history.map((pt) => ({
     ...pt,
     value: pt.value,
   }))
@@ -99,13 +107,13 @@ export function LabTrendChart({ data, testCode }: Props) {
               }}
             >
               <TrendIcon className="w-3.5 h-3.5" />
-              {TREND_DIRECTION_FA[trend.direction]}
-              {trend.changePercent !== 0 && (
-                <span className="opacity-70">({Math.abs(trend.changePercent).toFixed(1)}%)</span>
+              {TREND_DIRECTION_FA[direction]}
+              {changePercent !== 0 && (
+                <span className="opacity-70">({Math.abs(changePercent).toFixed(1)}%)</span>
               )}
             </motion.div>
 
-            {trend.isConcerning && (
+            {isConcerning && (
               <motion.span
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -119,14 +127,17 @@ export function LabTrendChart({ data, testCode }: Props) {
         </div>
 
         {/* Interpretation */}
-        {trend.interpretationFa && (
+        {isConcerning && (
           <motion.p
             initial={{ opacity: 0 }}
             animate={inView ? { opacity: 1 } : {}}
             transition={{ delay: 0.5 }}
             className="text-xs text-slate-500 mt-2 bg-slate-50 rounded-lg px-3 py-2"
           >
-            {trend.interpretationFa}
+            مقدار خارج از محدوده طبیعی (
+            {data.normal_low != null ? `حد پایین: ${data.normal_low}` : ''}
+            {data.normal_high != null ? `، حد بالا: ${data.normal_high}` : ''}
+            )
           </motion.p>
         )}
       </div>

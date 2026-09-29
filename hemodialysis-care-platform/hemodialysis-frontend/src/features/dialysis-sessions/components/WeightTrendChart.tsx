@@ -8,11 +8,11 @@ import {
   Tooltip, ResponsiveContainer, ReferenceLine, Legend,
 } from 'recharts'
 import { Scale } from 'lucide-react'
-import { formatPersianDate } from '@/lib/utils/date.utils'
-import type { WeightTrendPoint } from '../types/session.types'
+import { formatDate } from '@/lib/utils/date.utils'
+import type { WeightTrendItem } from '../types/session.types'
 
 interface Props {
-  data: WeightTrendPoint[]
+  data: WeightTrendItem[]
   dryWeight?: number
 }
 
@@ -20,7 +20,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null
   return (
     <div className="bg-white border border-primary-100 rounded-xl shadow-azure p-3 text-sm font-vazir">
-      <p className="text-text-muted mb-2">{formatPersianDate(label)}</p>
+      <p className="text-text-muted mb-2">{formatDate(label)}</p>
       {payload.map((p: any) => (
         <div key={p.name} className="flex items-center gap-2 mb-1">
           <div className="w-2 h-2 rounded-full" style={{ background: p.color }} />
@@ -77,7 +77,7 @@ export function WeightTrendChart({ data, dryWeight }: Props) {
             <CartesianGrid strokeDasharray="3 3" stroke="#E0F2FE" />
             <XAxis
               dataKey="date"
-              tickFormatter={formatPersianDate}
+              tickFormatter={formatDate}
               tick={{ fontSize: 11, fill: '#64748B', fontFamily: 'Vazirmatn' }}
               axisLine={false}
               tickLine={false}

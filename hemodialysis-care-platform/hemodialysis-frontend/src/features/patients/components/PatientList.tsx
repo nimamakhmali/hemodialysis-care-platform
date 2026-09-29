@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from "motion/react";
 import { Users } from "lucide-react";
 import { PatientCard } from "./PatientCard";
 import type { PatientSummary } from "../types/patient.types";
-import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 
 interface PatientListProps {
   patients: PatientSummary[];
@@ -89,10 +88,7 @@ export function PatientList({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
-          <AnimatedNumber
-            value={totalCount}
-            className="font-semibold text-slate-700"
-          />
+          <span className="font-semibold text-slate-700">{totalCount}</span>
           &nbsp;بیمار یافت شد
         </motion.p>
       )}

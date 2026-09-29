@@ -16,8 +16,7 @@ export default function SessionDetailPage() {
     sessionId: string
   }>()
 
-  const { data, isLoading, isError } = useSession(patientId, sessionId)
-  const session = data?.data
+  const { data: session, isLoading, isError } = useSession(patientId, sessionId)
 
   if (isLoading) {
     return (

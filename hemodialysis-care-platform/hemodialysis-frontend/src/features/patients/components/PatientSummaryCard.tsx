@@ -1,9 +1,9 @@
 "use client";
 
+import type { ComponentType } from "react";
 import { motion } from "motion/react";
 import { Activity, Droplets, Heart, FlaskConical, Bell } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { formatPersianDate } from "@/lib/utils/date.utils";
 import type { PatientDetail } from "../types/patient.types";
 
@@ -21,7 +21,7 @@ function MetricItem({
   status,
   delay = 0,
 }: {
-  icon: React.ElementType;
+  icon: ComponentType<{ className?: string }>;
   label: string;
   value?: number | string | null;
   unit?: string;
@@ -49,14 +49,15 @@ function MetricItem({
         </div>
         <span className="text-sm text-slate-600">{label}</span>
       </div>
-      <div className={cn("text-sm font-semibold", status ? statusColors[status] : "text-slate-800")}>
+      <div
+        className={cn(
+          "text-sm font-semibold",
+          status ? (statusColors[status] ?? "text-slate-800") : "text-slate-800"
+        )}
+      >
         {value != null ? (
           <>
-            {typeof value === "number" ? (
-              <AnimatedNumber value={value} decimals={1} />
-            ) : (
-              value
-            )}
+            {value}
             {unit && <span className="ml-1 text-xs font-normal text-slate-400">{unit}</span>}
           </>
         ) : (
@@ -175,7 +176,11 @@ export function PatientSummaryCard({
       )}
 
       {/* Alerts */}
-      {summary?.active_alerts && summary.active_alerts.total > 0 && (
+      {summary?.active_alerts &&
+        (summary.active_alerts.total ??
+          (summary.active_alerts.high +
+            summary.active_alerts.medium +
+            summary.active_alerts.low)) > 0 && (
         <div>
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">
             هشدارهای فعال

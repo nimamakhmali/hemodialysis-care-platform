@@ -87,7 +87,7 @@ export function useResetPassword() {
 
 export function useAuditLogs(filters?: AuditLogFilters) {
   return useQuery({
-    queryKey: [QUERY_KEYS.adminAuditLogs, filters],
+    queryKey: [QUERY_KEYS.auditLogs, filters],
     queryFn: () => adminService.getAuditLogs(filters),
     staleTime: 60 * 1000,
   });

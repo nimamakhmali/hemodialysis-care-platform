@@ -7,6 +7,7 @@ import type {
   CreatePatientRequest,
   UpdatePatientRequest,
   PatientFilters,
+  TimelineEvent,
 } from '../types/patient.types'
 
 export const patientsService = {
@@ -31,6 +32,17 @@ export const patientsService = {
       API_ENDPOINTS.patients.summary(id)
     )
     return res.data.data
+  },
+
+  getTimeline: async (
+    id: string,
+    limit = 30
+  ): Promise<TimelineEvent[]> => {
+    const res = await apiClient.get<ApiResponse<TimelineEvent[]>>(
+      API_ENDPOINTS.patients.timeline(id),
+      { params: { limit } }
+    )
+    return res.data.data ?? []
   },
 
   create: async (data: CreatePatientRequest): Promise<PatientDetail> => {

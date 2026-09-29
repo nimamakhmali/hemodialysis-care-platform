@@ -19,7 +19,7 @@ import { UserForm } from "./UserForm";
 import type { AdminUser, UserFilters } from "../types/admin.types";
 import type { UserRole } from "@/types/common.types";
 import { cn } from "@/lib/utils/cn";
-import { formatPersianDate } from "@/lib/utils/date.utils";
+import { formatPersianDateTime } from "@/lib/utils/date.utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -286,7 +286,7 @@ export function UserManagementTable() {
                     </td>
                     <td className="px-5 py-3.5 text-xs text-slate-400">
                       {user.last_login
-                        ? formatPersianDate(user.last_login)
+                        ? formatPersianDateTime(user.last_login)
                         : "—"}
                     </td>
                     <td className="px-5 py-3.5">

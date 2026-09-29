@@ -4,6 +4,12 @@ import { useState } from 'react'
 import { motion } from 'motion/react'
 import { Activity } from 'lucide-react'
 import { useSymptomHistory } from '../hooks/useSymptoms'
+import type {
+  SymptomReport,
+  SymptomItem,
+  SymptomType,
+  SymptomSeverity,
+} from '../types/symptom.types'
 import {
   SYMPTOM_LABELS,
   SEVERITY_LABELS,
@@ -17,6 +23,13 @@ import { formatDateTime } from '@/lib/utils/date.utils'
 
 interface SymptomHistoryListProps {
   patientId: string
+}
+
+interface HistoryPage {
+  results: SymptomReport[]
+  page: number
+  pages: number
+  total: number
 }
 
 export function SymptomHistoryList({ patientId }: SymptomHistoryListProps) {
@@ -44,7 +57,7 @@ export function SymptomHistoryList({ patientId }: SymptomHistoryListProps) {
     )
   }
 
-  const reports = data?.data ?? []
+  const reports = data?.results ?? []
 
   if (reports.length === 0) {
     return (
@@ -61,7 +74,7 @@ export function SymptomHistoryList({ patientId }: SymptomHistoryListProps) {
     <div className="space-y-4">
       <div className="space-y-3">
         {reports.map((report, i) => {
-          const hasDanger = report.symptoms.some((s) =>
+          const hasDanger = report.symptoms.some((s: SymptomItem) =>
             DANGER_SYMPTOMS.has(s.type)
           )
 
@@ -89,7 +102,7 @@ export function SymptomHistoryList({ patientId }: SymptomHistoryListProps) {
               </div>
 
               <div className="flex flex-wrap gap-1.5">
-                {report.symptoms.map(({ type, severity }) => (
+                {report.symptoms.map(({ type, severity }: SymptomItem) => (
                   <span
                     key={type}
                     className={`rounded-lg px-2.5 py-1 text-[11px] font-medium ${SEVERITY_COLORS[severity]}`}

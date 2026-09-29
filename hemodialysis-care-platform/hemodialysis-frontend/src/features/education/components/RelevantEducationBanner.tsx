@@ -23,7 +23,7 @@ export function RelevantEducationBanner({ patientId }: Props) {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {data.slice(0, 2).map((content) => (
-          <EducationCard key={content.id} content={content} relevant />
+          <EducationCard key={content.id} item={content} />
         ))}
       </div>
     </div>

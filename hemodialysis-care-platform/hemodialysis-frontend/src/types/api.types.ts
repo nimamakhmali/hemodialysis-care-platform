@@ -68,6 +68,21 @@ export interface LoginResponse {
   user: CurrentUser
 }
 
+export interface RefreshTokenResponse {
+  access_token: string
+  refresh_token?: string
+  token_type: string
+}
+
+export interface ChangePasswordRequest {
+  current_password: string
+  new_password: string
+}
+
+export interface CurrentUserResponse {
+  user: CurrentUser
+}
+
 // ── User / Admin ───────────────────────────────────────────────────────────
 
 export interface UserItem {

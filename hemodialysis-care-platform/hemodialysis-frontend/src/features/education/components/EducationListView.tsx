@@ -3,17 +3,16 @@
 
 import { useState } from "react";
 import { Search, BookOpen } from "lucide-react";
-import { useEducation } from "../hooks/useEducation";
+import { useEducationList } from "../hooks/useEducation";
 import { EducationCard } from "./EducationCard";
 import { Skeleton } from "@/components/ui/Skeleton";
+import type { EducationContentItem } from "@/types/api.types";
 
 export function EducationListView() {
   const [search, setSearch] = useState("");
-  const { data, isLoading } = useEducation({ is_active: true });
+  const { data, isLoading } = useEducationList({ search: search || undefined });
 
-  const filtered = (data ?? []).filter(
-    (c) => !search || c.title_fa.includes(search)
-  );
+  const items = data?.data ?? [];
 
   return (
     <div className="space-y-5">
@@ -37,15 +36,15 @@ export function EducationListView() {
             <Skeleton key={i} className="h-40 rounded-2xl" />
           ))}
         </div>
-      ) : filtered.length === 0 ? (
+      ) : items.length === 0 ? (
         <div className="py-16 flex flex-col items-center gap-3 text-slate-400">
           <BookOpen className="w-12 h-12 opacity-20" />
           <p className="text-sm">محتوایی یافت نشد</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filtered.map((content) => (
-            <EducationCard key={content.id} content={content} />
+          {items.map((content: EducationContentItem) => (
+            <EducationCard key={content.id} item={content} />
           ))}
         </div>
       )}

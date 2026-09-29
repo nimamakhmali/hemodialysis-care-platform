@@ -7,7 +7,7 @@ import {
   Plus, Search, BookOpen, Edit3,
   Eye, EyeOff, Tag,
 } from "lucide-react";
-import { useEducation, useCreateEducation, useUpdateEducation } from "../hooks/useEducation";
+import { useEducationList, useCreateEducation, useUpdateEducation } from "../hooks/useEducation";
 import { EducationForm } from "./EducationForm";
 import type { EducationContent } from "../types/education.types";
 import { EDUCATION_TAG_LABELS } from "../types/education.types";
@@ -23,7 +23,7 @@ export function EducationManagementList() {
   const [editingContent, setEditingContent] =
     useState<EducationContent | null>(null);
 
-  const { data, isLoading } = useEducation({
+  const { data, isLoading } = useEducationList({
     is_active:
       filterActive === "all"
         ? undefined
@@ -33,8 +33,10 @@ export function EducationManagementList() {
   const createEdu = useCreateEducation();
   const updateEdu = useUpdateEducation();
 
-  const filtered = (data ?? []).filter(
-    (c) =>
+  const items = data?.data ?? [];
+
+  const filtered = items.filter(
+    (c: EducationContent) =>
       !search ||
       c.title_fa.includes(search) ||
       c.topic_code.includes(search.toUpperCase())

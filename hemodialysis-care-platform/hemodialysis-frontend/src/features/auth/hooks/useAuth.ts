@@ -1,24 +1,55 @@
 'use client'
 
-import { useAuth } from './useAuth'
+import { useAuthStore } from '../stores/auth.store'
+import type { CurrentUser } from '@/types/api.types'
 
-interface UseRequirePatientIdResult {
-  patientId: string | null
-  isReady: boolean
-  hasProfile: boolean
+export interface UseAuthResult {
+  user: CurrentUser | null
+  isAuthenticated: boolean
+  isInitializing: boolean
+  isLoading: boolean
+  login: (data: { phone_number: string; password: string }) => Promise<void>
+  logout: () => Promise<void>
+  setUser: (user: CurrentUser) => void
+  clearAuth: () => void
 }
 
 /**
- * Guard مشترک برای تمام صفحات بیمار.
- * منبع صحیح patientId را از پروفایل اعتبارسنجی‌شده‌ی سرور (/auth/me) می‌گیرد
- * — هرگز از User.id استفاده نمی‌کند.
+ * Hook مشترک دسترسی به وضعیت احراز هویت.
+ * از Zustand store استفاده می‌کند تا performance بهینه باشد
+ * (فقط بخش‌هایی که نیاز دارند re-render شوند).
  */
-export function useRequirePatientId(): UseRequirePatientIdResult {
-  const { patientId, isInitialized, isAuthenticated } = useAuth()
+export function useAuth(): UseAuthResult {
+  const {
+    user,
+    isAuthenticated,
+    isInitializing,
+    isLoading,
+    login,
+    logout,
+    setUser,
+    clearAuth,
+  } = useAuthStore((s) => ({
+    user: s.user,
+    isAuthenticated: s.isAuthenticated,
+    isInitializing: s.isInitializing,
+    isLoading: s.isLoading,
+    login: s.login,
+    logout: s.logout,
+    setUser: s.setUser,
+    clearAuth: s.clearAuth,
+  }))
 
   return {
-    patientId,
-    isReady: isInitialized && isAuthenticated,
-    hasProfile: !!patientId,
+    user,
+    isAuthenticated,
+    isInitializing,
+    isLoading,
+    login,
+    logout,
+    setUser,
+    clearAuth,
   }
 }
+
+export default useAuth

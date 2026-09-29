@@ -26,12 +26,16 @@ export interface PatientSummary {
       session_date: string
       pre_weight: number
       post_weight: number | null
+      weight_gain?: number | null
       idwg_percent: number | null
+      bp_pre_systolic?: number | null
+      bp_pre_diastolic?: number | null
     } | null
     active_alerts: {
       high: number
       medium: number
       low: number
+      total?: number
     }
     risk?: {
       score: number
@@ -41,6 +45,10 @@ export interface PatientSummary {
     unread_messages_count: number
     weight_status: HealthStatus
     bp_status: HealthStatus
+    latest_labs?: Record<
+      string,
+      { value: number; unit?: string; status?: HealthStatus | string } | null
+    > | null
   } | null
 }
 
@@ -68,10 +76,39 @@ export interface CreatePatientRequest {
 
 export interface UpdatePatientRequest extends Partial<CreatePatientRequest> {}
 
+export type PatientStatus = 'all' | 'active' | 'inactive'
+export type PatientSortBy = 'name' | 'last_session' | 'risk_score' | 'alert_count'
+export type PatientSortOrder = 'asc' | 'desc'
+
 export interface PatientFilters {
   page?: number
   size?: number
   search?: string
   is_active?: boolean
   vascular_access_type?: string
+  status?: PatientStatus
+  has_active_alerts?: boolean
+  no_recent_data?: boolean
+  sort_by?: PatientSortBy
+  sort_order?: PatientSortOrder
+}
+
+export type TimelineEventType =
+  | 'session'
+  | 'lab'
+  | 'symptom'
+  | 'fluid'
+  | 'diet'
+  | 'alert'
+  | 'message'
+  | 'recommendation'
+
+export interface TimelineEvent {
+  id: string
+  type: TimelineEventType
+  title: string
+  description?: string | null
+  timestamp: string
+  severity?: AlertSeverity | null
+  metadata?: Record<string, unknown> | null
 }

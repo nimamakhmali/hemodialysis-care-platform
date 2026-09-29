@@ -35,10 +35,14 @@ export default function LabTrendPage() {
         <div className="text-center py-16 text-slate-400">داده‌ای برای نمایش وجود ندارد</div>
       )}
 
-      {data?.data && (
+      {data && data.points.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-          <LabTrendChart data={data.data} testCode={code} />
+          <LabTrendChart data={data} testCode={code} />
         </motion.div>
+      )}
+
+      {data && data.points.length === 0 && (
+        <div className="text-center py-16 text-slate-400">داده‌ای برای نمایش وجود ندارد</div>
       )}
     </div>
   )

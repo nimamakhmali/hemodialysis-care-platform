@@ -10,6 +10,19 @@ export type HealthStatus = 'ok' | 'warning' | 'critical' | 'neutral' | 'unknown'
 export type TrendDirection = 'increasing' | 'decreasing' | 'stable'
 export type DietAdherence = 'good' | 'moderate' | 'poor'
 
+export interface IDWGResult {
+  kg: number
+  percent: number
+  status: HealthStatus
+  label: string
+}
+
+export interface BPStatus {
+  status: HealthStatus
+  label: string
+  map: number
+}
+
 export type LabTestCode =
   | 'K' | 'Na' | 'Ca' | 'P' | 'HCO3'
   | 'Hb' | 'Hct' | 'Ferritin' | 'TSAT'
@@ -28,6 +41,26 @@ export type SessionEvent =
   | 'allergic_reaction'
   | 'other'
 
+// مطابق app/shared/enums.py
+export type SymptomType =
+  | 'shortness_of_breath'
+  | 'dizziness'
+  | 'access_site_pain'
+  | 'muscle_cramp'
+  | 'nausea'
+  | 'vomiting'
+  | 'itching'
+  | 'headache'
+  | 'fatigue'
+  | 'chest_pain'
+  | 'swelling'
+  | 'loss_of_appetite'
+  | 'excessive_thirst'
+  | 'sleep_disturbance'
+  | 'other'
+
+export type SymptomSeverity = 'mild' | 'moderate' | 'severe'
+
 // ── UI Types ───────────────────────────────────────────────────────────────
 export interface NavItem {
   href: string
@@ -36,6 +69,12 @@ export interface NavItem {
   badge?: number | string
   badgeVariant?: 'default' | 'danger' | 'warning'
   exact?: boolean
+}
+
+export interface SelectOption {
+  value: string | number
+  label: string
+  disabled?: boolean
 }
 
 // ── Display constants ──────────────────────────────────────────────────────

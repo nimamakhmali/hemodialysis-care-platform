@@ -93,7 +93,7 @@ function MessagesSummaryCard({
   messages,
   unreadCount,
 }: {
-  messages: Array<{ id: string; title: string; sent_at: string; read_at?: string }>
+  messages: Array<{ id: string; title: string; content: string; sent_at: string; read_at: string | null }>
   unreadCount: number
 }) {
   const router = useRouter()

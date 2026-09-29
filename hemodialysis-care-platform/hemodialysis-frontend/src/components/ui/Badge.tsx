@@ -83,7 +83,7 @@ export function Badge({
 
 // ─── Severity Badge ────────────────────────────────────────────────────────
 import type { AlertSeverity } from '@appTypes/common.types'
-import { ALERT_SEVERITY_FA } from '@config/constants'
+import { ALERT_SEVERITY_FA } from '@/types/common.types'
 
 interface SeverityBadgeProps {
   severity: AlertSeverity

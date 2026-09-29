@@ -44,7 +44,7 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
       status = 'neutral',
       refRangeLow,
       refRangeHigh,
-      onChange,
+      onValueChange,
       wrapperClassName,
       optional,
       className,

@@ -10,7 +10,7 @@ import {
   SEVERITY_COLORS,
   DANGER_SYMPTOMS,
 } from '../types/symptom.types'
-import type { SymptomType, SymptomSeverity, SymptomEntry } from '../types/symptom.types'
+import type { SymptomType, SymptomSeverity, SymptomItem } from '../types/symptom.types'
 
 const ALL_SYMPTOMS = Object.keys(SYMPTOM_LABELS) as SymptomType[]
 
@@ -60,7 +60,7 @@ export function SymptomReportForm({
     e.preventDefault()
     if (selected.size === 0) return
 
-    const symptoms: SymptomEntry[] = Array.from(selected.entries()).map(
+    const symptoms: SymptomItem[] = Array.from(selected.entries()).map(
       ([type, severity]) => ({ type, severity })
     )
 

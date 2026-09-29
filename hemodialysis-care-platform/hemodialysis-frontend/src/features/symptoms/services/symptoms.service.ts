@@ -1,44 +1,18 @@
-// مطابق کامل با app/shared/enums.py
+import apiClient from '@/lib/api/client'
+import { API_ENDPOINTS } from '@/lib/api/endpoints'
+import type { ApiResponse, PaginatedApiResponse } from '@/types/api.types'
+import type {
+  SymptomReport,
+  SymptomReportCreateRequest,
+  SymptomType,
+  SymptomSeverity,
+} from '../types/symptom.types'
 
-export type SymptomType =
-  | 'shortness_of_breath'
-  | 'dizziness'
-  | 'access_site_pain'
-  | 'muscle_cramp'
-  | 'nausea'
-  | 'vomiting'
-  | 'itching'
-  | 'headache'
-  | 'fatigue'
-  | 'chest_pain'
-  | 'swelling'
-  | 'loss_of_appetite'
-  | 'excessive_thirst'
-  | 'sleep_disturbance'
-  | 'other'
-
-export type SymptomSeverity = 'mild' | 'moderate' | 'severe'
-
-export interface SymptomEntry {
-  type: SymptomType
-  severity: SymptomSeverity
-}
-
-export interface SymptomReport {
-  id: string
-  patient_id: string
-  reported_at: string
-  symptoms: SymptomEntry[]
-  notes?: string | null
-  related_session_id?: string | null
-  created_at: string
-}
-
-export interface CreateSymptomReportRequest {
-  reported_at?: string
-  symptoms: SymptomEntry[]
-  notes?: string
-  related_session_id?: string
+export interface SymptomHistoryPage {
+  results: SymptomReport[]
+  page: number
+  pages: number
+  total: number
 }
 
 export interface SymptomSummaryResponse {
@@ -47,38 +21,39 @@ export interface SymptomSummaryResponse {
   recent_danger_symptoms: boolean
 }
 
-export const SYMPTOM_LABELS: Record<SymptomType, string> = {
-  shortness_of_breath: 'تنگی نفس',
-  dizziness: 'سرگیجه',
-  access_site_pain: 'درد محل فیستول',
-  muscle_cramp: 'کرامپ عضلانی',
-  nausea: 'تهوع',
-  vomiting: 'استفراغ',
-  itching: 'خارش',
-  headache: 'سردرد',
-  fatigue: 'ضعف و بی‌حالی',
-  chest_pain: 'درد قفسه سینه',
-  swelling: 'تورم',
-  loss_of_appetite: 'بی‌اشتهایی',
-  excessive_thirst: 'تشنگی زیاد',
-  sleep_disturbance: 'اختلال خواب',
-  other: 'سایر',
-}
+export const symptomsService = {
+  getHistory: async (
+    patientId: string,
+    params?: { page?: number; size?: number }
+  ): Promise<SymptomHistoryPage> => {
+    const res = await apiClient.get<PaginatedApiResponse<SymptomReport>>(
+      API_ENDPOINTS.symptoms.list(patientId),
+      { params }
+    )
+    const data = res.data
+    return {
+      results: data?.data ?? [],
+      page: data?.page ?? params?.page ?? 1,
+      pages: data?.pages ?? 1,
+      total: data?.total ?? (data?.data ?? []).length,
+    }
+  },
 
-export const SEVERITY_LABELS: Record<SymptomSeverity, string> = {
-  mild: 'خفیف',
-  moderate: 'متوسط',
-  severe: 'شدید',
-}
+  getSummary: async (patientId: string): Promise<SymptomSummaryResponse> => {
+    const res = await apiClient.get<ApiResponse<SymptomSummaryResponse>>(
+      API_ENDPOINTS.symptoms.summary(patientId)
+    )
+    return res.data.data ?? ({} as SymptomSummaryResponse)
+  },
 
-export const SEVERITY_COLORS: Record<SymptomSeverity, string> = {
-  mild: 'bg-emerald-100 text-emerald-700',
-  moderate: 'bg-amber-100 text-amber-700',
-  severe: 'bg-red-100 text-red-700',
+  create: async (
+    patientId: string,
+    data: SymptomReportCreateRequest
+  ): Promise<SymptomReport> => {
+    const res = await apiClient.post<ApiResponse<SymptomReport>>(
+      API_ENDPOINTS.symptoms.create(patientId),
+      data
+    )
+    return res.data.data
+  },
 }
-
-// مطابق با DANGER_SYMPTOMS در app/shared/enums.py
-export const DANGER_SYMPTOMS = new Set<SymptomType>([
-  'chest_pain',
-  'shortness_of_breath',
-])

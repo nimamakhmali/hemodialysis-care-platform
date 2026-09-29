@@ -2,6 +2,7 @@
 
 import { use } from "react";
 import { motion } from "motion/react";
+import type { ComponentType } from "react";
 import { usePatientTimeline } from "@/features/patients/hooks/usePatients";
 import { formatPersianDate, formatRelativeTime } from "@/lib/utils/date.utils";
 import { pageVariants } from "@/lib/animation/variants";
@@ -10,13 +11,13 @@ import {
   Utensils, Heart, BookOpen, Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import type { TimelineEventType } from "@/features/patients/types/patient.types";
+import type { TimelineEventType, TimelineEvent } from "@/features/patients/types/patient.types";
 
 const TYPE_CONFIG: Record<
   TimelineEventType,
-  { icon: React.ElementType; color: string; bg: string; label: string }
+  { icon: ComponentType<{ className?: string }>; color: string; bg: string; label: string }
 > = {
-  session: { icon: Droplets, color: "text-primary-600", bg: "bg-primary-100", label: "جلسه دیالیز" },
+  session: { icon: Droplets, color: "text-primary-600", bg: "bg-primary-100", label: "sessionsه دیالیز" },
   lab: { icon: FlaskConical, color: "text-cyan-600", bg: "bg-cyan-100", label: "آزمایش" },
   symptom: { icon: Heart, color: "text-rose-600", bg: "bg-rose-100", label: "علائم" },
   fluid: { icon: Droplets, color: "text-blue-600", bg: "bg-blue-100", label: "مایعات" },
@@ -62,8 +63,9 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
           <div className="absolute right-[17px] top-0 bottom-0 w-px bg-gradient-to-b from-primary-200 via-primary-100 to-transparent" />
 
           <div className="space-y-4">
-            {events.map((event, i) => {
+            {events.map((event: TimelineEvent, i: number) => {
               const cfg = TYPE_CONFIG[event.type] ?? TYPE_CONFIG.session;
+              const Icon = cfg.icon;
               return (
                 <motion.div
                   key={event.id}
@@ -79,7 +81,7 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
                       cfg.bg
                     )}
                   >
-                    <cfg.icon className={cn("h-4 w-4", cfg.color)} />
+                    <Icon className={cn("h-4 w-4", cfg.color)} />
                   </div>
 
                   {/* Content */}

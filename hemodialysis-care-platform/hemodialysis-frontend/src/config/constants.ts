@@ -57,6 +57,7 @@ export const CHART_COLORS = {
   primary: '#0EA5E9',
   secondary: '#06B6D4',
   teal: '#14B8A6',
+  accent: '#8B5CF6',
   warning: '#F59E0B',
   danger: '#EF4444',
   success: '#22C55E',
@@ -67,6 +68,12 @@ export const TREND_DIRECTION_FA: Record<TrendDirection, string> = {
   decreasing: 'نزولی',
   stable: 'پایدار',
 }
+
+// IDWG thresholds (Interdialytic Weight Gain)
+export const IDWG_THRESHOLDS = {
+  warningPercent: 3,
+  criticalPercent: 5,
+} as const
 
 // Alert severity display
 export const ALERT_SEVERITY_COLORS = {

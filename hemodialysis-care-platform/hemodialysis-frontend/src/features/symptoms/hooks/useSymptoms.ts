@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { symptomsService } from '../services/symptoms.service'
 import { QUERY_KEYS } from '@/lib/query/queryClient'
 import toast from 'react-hot-toast'
-import type { CreateSymptomReportRequest } from '../types/symptom.types'
+import type { SymptomReportCreateRequest } from '../types/symptom.types'
 
 export function useSymptomHistory(
   patientId: string,
@@ -30,7 +30,7 @@ export function useSymptomSummary(patientId: string) {
 export function useCreateSymptomReport(patientId: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: CreateSymptomReportRequest) =>
+    mutationFn: (data: SymptomReportCreateRequest) =>
       symptomsService.create(patientId, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: QUERY_KEYS.symptoms(patientId) })

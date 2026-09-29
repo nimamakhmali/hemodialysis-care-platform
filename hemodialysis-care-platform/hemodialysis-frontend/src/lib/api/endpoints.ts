@@ -113,6 +113,8 @@ export const API_ENDPOINTS = {
     dashboard: '/clinician/dashboard/',
     patientsOverview: '/clinician/patients-overview/',
     alertsFeed: '/clinician/alerts-feed/',
+    clinicalSummary: (patientId: string) =>
+      `/patients/${patientId}/clinical-summary/`,
   },
 
   // Admin

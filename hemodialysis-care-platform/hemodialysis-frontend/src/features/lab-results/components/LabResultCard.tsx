@@ -3,26 +3,19 @@
 
 import { useState, useRef } from 'react'
 import { motion, AnimatePresence, useInView } from 'motion/react'
-import { TrendingUp, TrendingDown, Minus, ChevronDown } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import { LAB_NAMES_FA, LAB_UNITS } from '@/config/constants'
 import { getLabStatus } from '@/lib/utils/medical.utils'
 import { LabStatusBadge } from './LabStatusBadge'
 import { LabRangeIndicator } from './LabRangeIndicator'
 import { cn } from '@/lib/utils/cn'
-import type { LabResult, ReferenceRange } from '../types/lab.types'
-import type { LabTestCode } from '@/types/common.types'
+import type { LabResultResponse, LabReferenceRange } from '../types/lab.types'
 
 interface Props {
-  result: LabResult
-  refRange?: ReferenceRange
+  result: LabResultResponse
+  refRange?: LabReferenceRange
   delay?: number
   showRange?: boolean
-}
-
-const TREND_ICON = {
-  increasing: TrendingUp,
-  decreasing: TrendingDown,
-  stable: Minus,
 }
 
 export function LabResultCard({ result, refRange, delay = 0, showRange = true }: Props) {
@@ -42,8 +35,8 @@ export function LabResultCard({ result, refRange, delay = 0, showRange = true }:
     unknown:  { bg: 'bg-slate-50',    border: 'border-slate-100',   value: 'text-slate-700',   glow: 'none' },
   }[status]
 
-  const nameFa = LAB_NAMES_FA[result.test_code as LabTestCode] ?? result.test_code
-  const unit = (result.unit || LAB_UNITS[result.test_code as LabTestCode]) ?? ''
+  const nameFa = LAB_NAMES_FA[result.test_code as keyof typeof LAB_NAMES_FA] ?? result.test_code
+  const unit = (result.unit || LAB_UNITS[result.test_code as keyof typeof LAB_UNITS]) ?? ''
 
   return (
     <motion.div
@@ -66,7 +59,12 @@ export function LabResultCard({ result, refRange, delay = 0, showRange = true }:
           <p className="font-semibold text-slate-800 text-sm">{nameFa}</p>
         </div>
         <div className="flex items-center gap-2">
-          <LabStatusBadge status={status} direction={result.abnormality_direction} />
+          <LabStatusBadge
+            isAbnormal={result.is_abnormal}
+            isCritical={result.is_critical}
+            direction={result.abnormality_direction}
+            statusFa={result.status_fa}
+          />
           {showRange && refRange && (
             <motion.div animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
               <ChevronDown className="w-4 h-4 text-slate-400" />

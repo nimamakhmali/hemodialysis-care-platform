@@ -9,6 +9,8 @@ interface AuthState {
   isAuthenticated: boolean
   /** true during initial session restoration */
   isInitializing: boolean
+  /** true while a login request is in-flight */
+  isLoading: boolean
 
   login: (data: LoginRequest) => Promise<void>
   logout: () => Promise<void>
@@ -44,35 +46,42 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isAuthenticated: false,
       isInitializing: true,
+      isLoading: false,
 
       login: async (credentials: LoginRequest) => {
-        const res = await apiClient.post(
-          API_ENDPOINTS.auth.login,
-          credentials
-        )
-        const data = res.data
+        set({ isLoading: true })
+        try {
+          const res = await apiClient.post(
+            API_ENDPOINTS.auth.login,
+            credentials
+          )
+          const data = res.data
 
-        // backend returns: { access_token, refresh_token, token_type, user }
-        const accessToken = extractField<string>(
-          data,
-          'access_token'
-        )
-        const refreshToken = extractField<string>(
-          data,
-          'refresh_token'
-        )
-        // backend field is "user" — NOT "user_info"
-        const user = extractField<CurrentUser>(data, 'user', 'user_info')
+          // backend returns: { access_token, refresh_token, token_type, user }
+          const accessToken = extractField<string>(
+            data,
+            'access_token'
+          )
+          const refreshToken = extractField<string>(
+            data,
+            'refresh_token'
+          )
+          // backend field is "user" — NOT "user_info"
+          const user = extractField<CurrentUser>(data, 'user', 'user_info')
 
-        if (!accessToken) {
-          throw new Error('سرور توکن معتبر برنگرداند')
+          if (!accessToken) {
+            throw new Error('سرور توکن معتبر برنگرداند')
+          }
+          if (!user?.id) {
+            throw new Error('سرور اطلاعات کاربر را برنگرداند')
+          }
+
+          tokenManager.setTokens(accessToken, refreshToken ?? undefined)
+          set({ user, isAuthenticated: true, isInitializing: false, isLoading: false })
+        } catch (err) {
+          set({ isLoading: false })
+          throw err
         }
-        if (!user?.id) {
-          throw new Error('سرور اطلاعات کاربر را برنگرداند')
-        }
-
-        tokenManager.setTokens(accessToken, refreshToken ?? undefined)
-        set({ user, isAuthenticated: true, isInitializing: false })
       },
 
       logout: async () => {

@@ -27,6 +27,7 @@ export interface SessionResponse {
   post_weight: number | null
   dry_weight_at_session: number
   weight_gain: number | null
+  weight_gain_percent: number | null
   uf_volume: number | null
   bp_pre_systolic: number | null
   bp_pre_diastolic: number | null
@@ -35,6 +36,7 @@ export interface SessionResponse {
   bp_post_systolic: number | null
   bp_post_diastolic: number | null
   intradialytic_events: SessionEvent[]
+  had_intradialytic_hypotension: boolean
   notes: string | null
   recorded_by: string
   created_at: string

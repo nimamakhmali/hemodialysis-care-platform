@@ -45,6 +45,29 @@ export function formatDate(dateStr: string | null | undefined): string {
 }
 
 /**
+ * فرمت تاریخ فارسی: ۱۴ فروردین ۱۴۰۴
+ */
+export function formatPersianDate(dateStr: string | null | undefined): string {
+  return formatDate(dateStr)
+}
+export function formatPersianDateTime(dateStr: string | null | undefined): string {
+  if (!dateStr) return '—'
+  try {
+    const date = new Date(dateStr)
+    if (isNaN(date.getTime())) return dateStr
+    return date.toLocaleDateString('fa-IR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  } catch {
+    return dateStr
+  }
+}
+
+/**
  * فرمت تاریخ و ساعت: ۱۴ فروردین ۱۴۰۴، ساعت ۱۴:۳۰
  */
 export function formatDateTime(dateStr: string | null | undefined): string {
@@ -67,6 +90,11 @@ export function formatDateTime(dateStr: string | null | undefined): string {
 /**
  * فاصله از الان: ۳ ساعت پیش
  */
+export function formatRelativeTime(
+  dateStr: string | null | undefined
+): string {
+  return formatDistanceToNow(dateStr)
+}
 export function formatDistanceToNow(
   dateStr: string | null | undefined
 ): string {

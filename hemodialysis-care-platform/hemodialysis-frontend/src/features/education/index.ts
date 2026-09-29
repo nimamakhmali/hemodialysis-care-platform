@@ -5,6 +5,6 @@ export { EducationDetailView } from "./components/EducationDetailView";
 export { EducationManagementList } from "./components/EducationManagementList";
 export { EducationForm } from "./components/EducationForm";
 export { RelevantEducationBanner } from "./components/RelevantEducationBanner";
-export { useEducation, useEducationDetail, useRelevantEducation, useCreateEducation, useUpdateEducation } from "./hooks/useEducation";
+export { useEducationList, useEducationDetail, useRelevantEducation, useCreateEducation, useUpdateEducation } from "./hooks/useEducation";
 export { educationService } from "./services/education.service";
 export type * from "./types/education.types";

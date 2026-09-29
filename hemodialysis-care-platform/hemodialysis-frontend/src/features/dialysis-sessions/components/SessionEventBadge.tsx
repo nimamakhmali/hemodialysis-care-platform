@@ -10,6 +10,8 @@ const EVENT_CONFIG: Record<SessionEvent, { label: string; color: string }> = {
   headache: { label: "سردرد", color: "bg-purple-50 text-purple-700 ring-purple-200" },
   chest_pain: { label: "درد قفسه سینه", color: "bg-red-50 text-red-800 ring-red-300" },
   access_problem: { label: "مشکل دسترسی", color: "bg-rose-50 text-rose-700 ring-rose-200" },
+  arrhythmia: { label: "آریتمی", color: "bg-pink-50 text-pink-700 ring-pink-200" },
+  allergic_reaction: { label: "واکنش آلرژیک", color: "bg-fuchsia-50 text-fuchsia-700 ring-fuchsia-200" },
   other: { label: "سایر", color: "bg-slate-50 text-slate-600 ring-slate-200" },
 };
 

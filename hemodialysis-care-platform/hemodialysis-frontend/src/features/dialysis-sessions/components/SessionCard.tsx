@@ -7,13 +7,13 @@ import {
   AlertTriangle, CheckCircle, ChevronLeft,
 } from 'lucide-react'
 import Link from 'next/link'
-import { formatPersianDate } from '@/lib/utils/date.utils'
+import { formatDate } from '@/lib/utils/date.utils'
 import { SESSION_EVENTS_FA } from '@/lib/utils/medical.utils'
-import type { DialysisSession } from '../types/session.types'
+import type { SessionResponse } from '../types/session.types'
 import { cn } from '@/lib/utils/cn'
 
 interface Props {
-  session: DialysisSession
+  session: SessionResponse
   patientId: string
   index?: number
 }
@@ -31,7 +31,7 @@ function IDWGBadge({ percent }: { percent?: number }) {
   )
 }
 
-function BPDisplay({ sys, dia, label }: { sys?: number; dia?: number; label: string }) {
+function BPDisplay({ sys, dia, label }: { sys?: number | null; dia?: number | null; label: string }) {
   if (!sys || !dia) return null
   const color =
     sys >= 180 ? 'text-red-500' :
@@ -85,7 +85,7 @@ export function SessionCard({ session, patientId, index = 0 }: Props) {
               </div>
               <div>
                 <p className="font-semibold text-text-primary text-sm">
-                  {formatPersianDate(session.session_date)}
+                  {formatDate(session.session_date)}
                 </p>
                 {session.duration_minutes && (
                   <div className="flex items-center gap-1 text-xs text-text-muted mt-0.5">
@@ -96,7 +96,13 @@ export function SessionCard({ session, patientId, index = 0 }: Props) {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <IDWGBadge percent={session.weight_gain_percent} />
+              <IDWGBadge
+                percent={
+                  session.weight_gain != null && session.dry_weight_at_session > 0
+                    ? (session.weight_gain / session.dry_weight_at_session) * 100
+                    : undefined
+                }
+              />
               <ChevronLeft className="w-4 h-4 text-text-muted" />
             </div>
           </div>

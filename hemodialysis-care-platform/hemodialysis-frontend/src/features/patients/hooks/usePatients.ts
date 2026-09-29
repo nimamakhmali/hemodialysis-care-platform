@@ -5,8 +5,8 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { patientsService } from "../services/patients.service";
 import type {
   PatientFilters,
-  CreatePatientForm,
-  UpdatePatientForm,
+  CreatePatientRequest,
+  UpdatePatientRequest,
 } from "../types/patient.types";
 import { toast } from "react-hot-toast";
 
@@ -30,7 +30,7 @@ export function usePatients(
 
   return useQuery({
     queryKey: PATIENT_KEYS.list(effectiveFilters, page, size),
-    queryFn: () => patientsService.getAll(effectiveFilters, page, size),
+    queryFn: () => patientsService.getList(effectiveFilters),
     placeholderData: (prev) => prev,
     staleTime: 2 * 60 * 1000,
   });
@@ -39,7 +39,7 @@ export function usePatients(
 export function usePatient(id: string) {
   return useQuery({
     queryKey: PATIENT_KEYS.detail(id),
-    queryFn: () => patientsService.getById(id),
+    queryFn: () => patientsService.getDetail(id),
     enabled: Boolean(id),
     staleTime: 3 * 60 * 1000,
   });
@@ -51,13 +51,13 @@ export function usePatientTimeline(id: string, limit = 30) {
     queryFn: () => patientsService.getTimeline(id, limit),
     enabled: Boolean(id),
     staleTime: 60 * 1000,
-  });
+  })
 }
 
 export function useCreatePatient() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: CreatePatientForm) => patientsService.create(data),
+    mutationFn: (data: CreatePatientRequest) => patientsService.create(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: PATIENT_KEYS.lists() });
       toast.success("بیمار با موفقیت ایجاد شد");
@@ -69,7 +69,7 @@ export function useCreatePatient() {
 export function useUpdatePatient(id: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: UpdatePatientForm) => patientsService.update(id, data),
+    mutationFn: (data: UpdatePatientRequest) => patientsService.update(id, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: PATIENT_KEYS.detail(id) });
       qc.invalidateQueries({ queryKey: PATIENT_KEYS.lists() });

@@ -4,11 +4,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { educationService } from '../services/education.service'
 import { QUERY_KEYS } from '@/lib/query/queryClient'
 import toast from 'react-hot-toast'
+import type { EducationContentItem } from '@/types/api.types'
 
 export function useEducationList(params?: {
   page?: number
   size?: number
   search?: string
+  is_active?: boolean
 }) {
   return useQuery({
     queryKey: [QUERY_KEYS.education, params],
@@ -32,6 +34,19 @@ export function useRelevantEducation(patientId: string) {
     queryFn: () => educationService.getRelevant(patientId),
     enabled: !!patientId,
     staleTime: 10 * 60 * 1000,
+  })
+}
+
+export function useCreateEducation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: Partial<EducationContentItem>) =>
+      educationService.create(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [QUERY_KEYS.education] })
+      toast.success('محتوا ایجاد شد')
+    },
+    onError: () => toast.error('خطا در ایجاد محتوا'),
   })
 }
 

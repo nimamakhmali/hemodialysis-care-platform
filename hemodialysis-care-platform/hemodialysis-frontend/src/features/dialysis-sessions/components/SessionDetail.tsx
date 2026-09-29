@@ -4,16 +4,16 @@
 import { motion } from 'motion/react'
 import {
   Scale, Activity, Droplets, Clock,
-  AlertTriangle, CheckCircle, Calendar,
+  AlertTriangle, Calendar,
 } from 'lucide-react'
-import { formatPersianDate } from '@/lib/utils/date.utils'
-import { SESSION_EVENTS_FA, calculateIDWG } from '@/lib/utils/medical.utils'
+import { formatDate } from '@/lib/utils/date.utils'
+import { SESSION_EVENTS_FA } from '@/lib/utils/medical.utils'
 import { IDWGGauge } from './IDWGGauge'
 import { cn } from '@/lib/utils/cn'
-import type { DialysisSession } from '../types/session.types'
+import type { SessionResponse } from '../types/session.types'
 
 interface Props {
-  session: DialysisSession
+  session: SessionResponse
 }
 
 function InfoCard({
@@ -24,7 +24,7 @@ function InfoCard({
   children,
   delay,
 }: {
-  icon: any
+  icon: React.ComponentType<{ className?: string }>
   iconColor: string
   iconBg: string
   label: string
@@ -56,8 +56,8 @@ function BPSection({
   colorClass,
 }: {
   label: string
-  systolic?: number
-  diastolic?: number
+  systolic?: number | null
+  diastolic?: number | null
   colorClass?: string
 }) {
   if (!systolic || !diastolic) return null
@@ -99,7 +99,7 @@ export function SessionDetail({ session }: Props) {
           </div>
           <div>
             <h3 className="font-bold text-text-primary text-lg">
-              {formatPersianDate(session.session_date)}
+              {formatDate(session.session_date)}
             </h3>
             {session.duration_minutes && (
               <div className="flex items-center gap-1.5 text-sm text-text-muted mt-0.5">
