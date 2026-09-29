@@ -1,11 +1,23 @@
 import uuid
 from datetime import datetime
+from enum import Enum as PyEnum
+from typing import Type
 
-from sqlalchemy import DateTime, func
+from sqlalchemy import DateTime, Enum as SAEnum, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.config.database import Base
+
+
+def pg_enum(enum_cls: Type[PyEnum], name: str, **kwargs) -> SAEnum:
+    """Persist Python enum *values* (e.g. male) instead of member names (MALE)."""
+    return SAEnum(
+        enum_cls,
+        name=name,
+        values_callable=lambda members: [item.value for item in members],
+        **kwargs,
+    )
 
 
 class BaseModel(Base):

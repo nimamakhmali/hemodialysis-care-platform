@@ -3,13 +3,13 @@ from datetime import date, datetime
 from typing import Optional, List, TYPE_CHECKING
 
 from sqlalchemy import (
-    Boolean, Date, DateTime, Enum as SAEnum,
+    Boolean, Date, DateTime,
     Float, ForeignKey, Integer, JSON, String, Text
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.infrastructure.db.base import BaseModel
+from app.infrastructure.db.base import BaseModel, pg_enum
 from app.shared.enums import VascularAccessType, Gender
 
 if TYPE_CHECKING:
@@ -73,7 +73,7 @@ class Patient(BaseModel):
     )
 
     gender: Mapped[Optional[Gender]] = mapped_column(
-        SAEnum(Gender, name="gender_enum"),
+        pg_enum(Gender, name="gender_enum"),
         nullable=True,
     )
 
@@ -112,7 +112,7 @@ class Patient(BaseModel):
     )
 
     vascular_access_type: Mapped[Optional[VascularAccessType]] = mapped_column(
-        SAEnum(VascularAccessType, name="vascular_access_type_enum"),
+        pg_enum(VascularAccessType, name="vascular_access_type_enum"),
         nullable=True,
         comment="نوع دسترسی عروقی",
     )

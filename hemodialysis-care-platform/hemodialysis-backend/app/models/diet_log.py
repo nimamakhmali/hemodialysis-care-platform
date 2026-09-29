@@ -3,13 +3,13 @@ from datetime import date
 from typing import Optional, TYPE_CHECKING
 
 from sqlalchemy import (
-    CheckConstraint, Date, Enum as SAEnum,
+    CheckConstraint, Date,
     ForeignKey, Index, Text, UniqueConstraint
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.infrastructure.db.base import BaseModel
+from app.infrastructure.db.base import BaseModel, pg_enum
 from app.shared.enums import DietAdherence
 
 if TYPE_CHECKING:
@@ -63,7 +63,7 @@ class DietLog(BaseModel):
     # سطح رعایت هر محدودیت
     # ==========================================
     potassium_adherence: Mapped[Optional[DietAdherence]] = mapped_column(
-        SAEnum(DietAdherence, name="diet_adherence_enum"),
+        pg_enum(DietAdherence, name="diet_adherence_enum"),
         nullable=True,
         comment=(
             "رعایت محدودیت پتاسیم\n"
@@ -72,7 +72,7 @@ class DietLog(BaseModel):
     )
 
     phosphorus_adherence: Mapped[Optional[DietAdherence]] = mapped_column(
-        SAEnum(DietAdherence, name="diet_adherence_enum", create_constraint=False),
+        pg_enum(DietAdherence, name="diet_adherence_enum", create_constraint=False),
         nullable=True,
         comment=(
             "رعایت محدودیت فسفر\n"
@@ -81,13 +81,13 @@ class DietLog(BaseModel):
     )
 
     protein_adherence: Mapped[Optional[DietAdherence]] = mapped_column(
-        SAEnum(DietAdherence, name="diet_adherence_enum", create_constraint=False),
+        pg_enum(DietAdherence, name="diet_adherence_enum", create_constraint=False),
         nullable=True,
         comment="رعایت توصیه پروتئین (نه کم نه زیاد)",
     )
 
     sodium_adherence: Mapped[Optional[DietAdherence]] = mapped_column(
-        SAEnum(DietAdherence, name="diet_adherence_enum", create_constraint=False),
+        pg_enum(DietAdherence, name="diet_adherence_enum", create_constraint=False),
         nullable=True,
         comment="رعایت محدودیت سدیم/نمک",
     )

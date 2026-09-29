@@ -3,13 +3,13 @@ from datetime import datetime
 from typing import Optional, TYPE_CHECKING
 
 from sqlalchemy import (
-    DateTime, Enum as SAEnum,
+    DateTime,
     ForeignKey, Index, JSON, String, Text
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.infrastructure.db.base import BaseModel
+from app.infrastructure.db.base import BaseModel, pg_enum
 from app.shared.enums import RecommendationStatus, AlertSeverity
 
 if TYPE_CHECKING:
@@ -99,7 +99,7 @@ class Recommendation(BaseModel):
     # اولویت
     # ==========================================
     priority: Mapped[AlertSeverity] = mapped_column(
-        SAEnum(AlertSeverity, name="alert_severity_enum", create_constraint=False),
+        pg_enum(AlertSeverity, name="alert_severity_enum", create_constraint=False),
         nullable=False,
         default=AlertSeverity.MEDIUM,
         comment="اولویت بررسی توصیه",
@@ -109,7 +109,7 @@ class Recommendation(BaseModel):
     # وضعیت
     # ==========================================
     status: Mapped[RecommendationStatus] = mapped_column(
-        SAEnum(RecommendationStatus, name="recommendation_status_enum"),
+        pg_enum(RecommendationStatus, name="recommendation_status_enum"),
         default=RecommendationStatus.DRAFT,
         nullable=False,
         index=True,

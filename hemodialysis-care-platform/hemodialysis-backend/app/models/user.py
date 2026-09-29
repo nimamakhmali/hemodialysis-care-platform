@@ -2,11 +2,11 @@ import uuid
 from datetime import datetime
 from typing import Optional, List, TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, Enum as SAEnum, String
+from sqlalchemy import Boolean, DateTime, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.infrastructure.db.base import BaseModel
+from app.infrastructure.db.base import BaseModel, pg_enum
 from app.shared.enums import UserRole
 
 if TYPE_CHECKING:
@@ -51,11 +51,7 @@ class User(BaseModel):
     # نقش و وضعیت
     
     role: Mapped[UserRole] = mapped_column(
-        SAEnum(
-            UserRole,
-            name="user_role_enum",
-            values_callable=lambda enum: [item.value for item in enum],
-        ),
+        pg_enum(UserRole, name="user_role_enum"),
         nullable=False,
         index=True,
         comment="نقش کاربر در سیستم",

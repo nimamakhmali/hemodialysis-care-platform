@@ -3,13 +3,13 @@ from datetime import datetime
 from typing import Optional, TYPE_CHECKING
 
 from sqlalchemy import (
-    Boolean, DateTime, Enum as SAEnum,
+    Boolean, DateTime,
     ForeignKey, Index, JSON, String, Text
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.infrastructure.db.base import BaseModel
+from app.infrastructure.db.base import BaseModel, pg_enum
 from app.shared.enums import AlertSeverity, AlertCategory, AlertStatus
 
 if TYPE_CHECKING:
@@ -48,14 +48,14 @@ class Alert(BaseModel):
     # طبقه‌بندی هشدار
     # ==========================================
     severity: Mapped[AlertSeverity] = mapped_column(
-        SAEnum(AlertSeverity, name="alert_severity_enum"),
+        pg_enum(AlertSeverity, name="alert_severity_enum"),
         nullable=False,
         index=True,
         comment="شدت هشدار: low/medium/high",
     )
 
     category: Mapped[AlertCategory] = mapped_column(
-        SAEnum(AlertCategory, name="alert_category_enum"),
+        pg_enum(AlertCategory, name="alert_category_enum"),
         nullable=False,
         index=True,
         comment="دسته‌بندی: weight/bp/lab/symptom/fluid/diet/combined",
@@ -122,7 +122,7 @@ class Alert(BaseModel):
     # وضعیت هشدار
     # ==========================================
     status: Mapped[AlertStatus] = mapped_column(
-        SAEnum(AlertStatus, name="alert_status_enum"),
+        pg_enum(AlertStatus, name="alert_status_enum"),
         default=AlertStatus.NEW,
         nullable=False,
         index=True,
