@@ -14,14 +14,12 @@ WORKDIR /app
 #    && rm -rf /var/lib/apt/lists/*
 #
 # Install Python dependencies
-# NOTE: the previous custom mirror (mirror-pypi.runflare.com) returned
-# HTTP 402 for public packages, so use the standard PyPI index.
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir \
-        --timeout 120 \
-        --retries 5 \
-        -r requirements.txt
+    --index-url https://mirror-pypi.runflare.com/simple/ \
+    --trusted-host mirror-pypi.runflare.com \
+    -r requirements.txt
     
 # Copy application code
 COPY . .
