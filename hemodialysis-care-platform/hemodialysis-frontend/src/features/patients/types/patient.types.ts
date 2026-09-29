@@ -74,7 +74,7 @@ export interface CreatePatientRequest {
   password?: string
 }
 
-export interface UpdatePatientRequest extends Partial<CreatePatientRequest> {}
+export type UpdatePatientRequest = Partial<CreatePatientRequest>
 
 export type PatientStatus = 'all' | 'active' | 'inactive'
 export type PatientSortBy = 'name' | 'last_session' | 'risk_score' | 'alert_count'

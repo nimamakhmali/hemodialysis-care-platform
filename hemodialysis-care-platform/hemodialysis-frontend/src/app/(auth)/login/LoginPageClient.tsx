@@ -125,8 +125,10 @@ function FloatingOrb({
   parallaxY?: ReturnType<typeof useMotionValue<number>>
   depth?: number
 }) {
-  const x = useTransform(parallaxX ?? useMotionValue(0), (v) => v * depth)
-  const y = useTransform(parallaxY ?? useMotionValue(0), (v) => v * depth)
+  const fallbackX = useMotionValue(0)
+  const fallbackY = useMotionValue(0)
+  const x = useTransform(parallaxX ?? fallbackX, (v) => v * depth)
+  const y = useTransform(parallaxY ?? fallbackY, (v) => v * depth)
 
   return (
     <motion.div
