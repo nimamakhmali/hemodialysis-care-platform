@@ -19,8 +19,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir \
-        --timeout 120 \
-        --retries 5 \
+    --index-url https://mirror-pypi.runflare.com/simple/ \
+    --trusted-host mirror-pypi.runflare.com \
         -r requirements.txt
     
 # Copy application code
