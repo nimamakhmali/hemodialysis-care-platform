@@ -3,13 +3,16 @@
 """
 
 import re
-from passlib.context import CryptContext
 
-pwd_context = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto",
-    bcrypt__rounds=12,
-)
+import bcrypt
+
+BCRYPT_ROUNDS = 12
+BCRYPT_MAX_BYTES = 72
+
+
+def _password_bytes(plain_password: str) -> bytes:
+    encoded = plain_password.encode("utf-8")
+    return encoded[:BCRYPT_MAX_BYTES]
 
 
 def hash_password(plain_password: str) -> str:
@@ -22,7 +25,10 @@ def hash_password(plain_password: str) -> str:
     Returns:
         رمز عبور hash شده
     """
-    return pwd_context.hash(plain_password)
+    return bcrypt.hashpw(
+        _password_bytes(plain_password),
+        bcrypt.gensalt(rounds=BCRYPT_ROUNDS),
+    ).decode("utf-8")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -36,7 +42,13 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Returns:
         True اگر رمز صحیح باشد
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        return bcrypt.checkpw(
+            _password_bytes(plain_password),
+            hashed_password.encode("utf-8"),
+        )
+    except (ValueError, TypeError):
+        return False
 
 
 def validate_password_strength(password: str) -> tuple[bool, list[str]]:

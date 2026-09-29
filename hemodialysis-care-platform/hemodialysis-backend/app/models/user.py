@@ -51,7 +51,11 @@ class User(BaseModel):
     # نقش و وضعیت
     
     role: Mapped[UserRole] = mapped_column(
-        SAEnum(UserRole, name="user_role_enum"),
+        SAEnum(
+            UserRole,
+            name="user_role_enum",
+            values_callable=lambda enum: [item.value for item in enum],
+        ),
         nullable=False,
         index=True,
         comment="نقش کاربر در سیستم",
