@@ -15,9 +15,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Create non-root user
+# Create non-root user (BusyBox adduser uses -G for group, not --gid)
 RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 --gid 1001 nextjs
+RUN adduser -D -H -u 1001 -G nodejs nextjs
 
 # Copy standalone output
 COPY --from=builder /app/.next/standalone ./
