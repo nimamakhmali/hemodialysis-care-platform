@@ -24,16 +24,14 @@ def upgrade() -> None:
     op.execute("""
         CREATE TYPE user_role_enum AS ENUM (
             
-            
-            'PATIENT',
-            'CLINICIAN',
-            'ADMIN',
+            'patient',
+            'clinician',
+            'admin',
         )
     """)
 
     op.execute("""
         CREATE TYPE gender_enum AS ENUM (
-            
             
             'MALE',
             'FEMALE',
@@ -42,7 +40,6 @@ def upgrade() -> None:
 
     op.execute("""
         CREATE TYPE vascular_access_type_enum AS ENUM (
-            
             
             'FISTULA',
             'GRAFT',
@@ -53,7 +50,6 @@ def upgrade() -> None:
     op.execute("""
         CREATE TYPE alert_severity_enum AS ENUM (
             
-            
             'LOW',
             'MEDIUM',
             'HIGH',
@@ -62,7 +58,6 @@ def upgrade() -> None:
 
     op.execute("""
         CREATE TYPE alert_category_enum AS ENUM (
-            
             
             'WEIGHT',
             'BLOOD_PRESSURE',
@@ -77,7 +72,6 @@ def upgrade() -> None:
     op.execute("""
         CREATE TYPE alert_status_enum AS ENUM (
             
-            
             'NEW',
             'ACKNOWLEDGED',
             'RESOLVED',
@@ -86,7 +80,6 @@ def upgrade() -> None:
 
     op.execute("""
         CREATE TYPE recommendation_status_enum AS ENUM (
-            
             
             'DRAFT',
             'APPROVED',
@@ -97,7 +90,6 @@ def upgrade() -> None:
 
     op.execute("""
         CREATE TYPE diet_adherence_enum AS ENUM (
-            
             
             'GOOD',
             'MODERATE',
