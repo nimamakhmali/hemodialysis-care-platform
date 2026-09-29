@@ -23,50 +23,85 @@ def upgrade() -> None:
     # ==========================================
     op.execute("""
         CREATE TYPE user_role_enum AS ENUM (
-            'patient', 'clinician', 'admin'
+            
+            
+            'PATIENT',
+            'CLINICIAN',
+            'ADMIN',
         )
     """)
 
     op.execute("""
         CREATE TYPE gender_enum AS ENUM (
-            'male', 'female'
+            
+            
+            'MALE',
+            'FEMALE',
         )
     """)
 
     op.execute("""
         CREATE TYPE vascular_access_type_enum AS ENUM (
-            'fistula', 'graft', 'catheter'
+            
+            
+            'FISTULA',
+            'GRAFT',
+            'CATHETER',
         )
     """)
 
     op.execute("""
         CREATE TYPE alert_severity_enum AS ENUM (
-            'low', 'medium', 'high'
+            
+            
+            'LOW',
+            'MEDIUM',
+            'HIGH',
         )
     """)
 
     op.execute("""
         CREATE TYPE alert_category_enum AS ENUM (
-            'weight', 'blood_pressure', 'lab',
-            'symptom', 'fluid', 'diet', 'combined'
+            
+            
+            'WEIGHT',
+            'BLOOD_PRESSURE',
+            'LAB',
+            'SYMPTOM',
+            'FLUID',
+            'DIET',
+            'COMBINED',
         )
     """)
 
     op.execute("""
         CREATE TYPE alert_status_enum AS ENUM (
-            'new', 'acknowledged', 'resolved'
+            
+            
+            'NEW',
+            'ACKNOWLEDGED',
+            'RESOLVED',
         )
     """)
 
     op.execute("""
         CREATE TYPE recommendation_status_enum AS ENUM (
-            'draft', 'approved', 'edited', 'rejected'
+            
+            
+            'DRAFT',
+            'APPROVED',
+            'EDITED',
+            'REJECTED',
         )
     """)
 
     op.execute("""
         CREATE TYPE diet_adherence_enum AS ENUM (
-            'good', 'moderate', 'poor'
+            
+            
+            'GOOD',
+            'MODERATE',
+            'POOR',
         )
     """)
 
