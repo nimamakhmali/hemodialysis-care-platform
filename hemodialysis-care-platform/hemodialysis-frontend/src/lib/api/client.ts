@@ -4,8 +4,22 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from 'axios'
 
-const BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api/v1'
+// Allow an absolute URL (e.g. http://localhost:8090/api/v1) to be
+// rewritten to a same-origin relative path so the request is never
+// cross-origin regardless of which host the page was served from.
+function normalizeBaseUrl(raw?: string): string {
+  if (!raw) return '/api/v1'
+  if (raw.startsWith('http://') || raw.startsWith('https://')) {
+    try {
+      return new URL(raw).pathname.replace(/\/$/, '') || '/api/v1'
+    } catch {
+      return raw
+    }
+  }
+  return raw
+}
+
+const BASE_URL = normalizeBaseUrl(process.env.NEXT_PUBLIC_API_URL)
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: BASE_URL,
